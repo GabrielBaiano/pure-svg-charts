@@ -1,0 +1,49 @@
+{
+  "name": "pure-svg-charts",
+  "version": "0.1.0",
+  "description": "Ultra-lightweight, reactive, and animated SVG charts for React",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build --mode lib",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "react",
+    "svg",
+    "charts",
+    "lightweight",
+    "animated",
+    "graphs",
+    "data-visualization"
+  ],
+  "author": "Gabriel Baiano <gabrielngama@gmail.com>",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@babel/standalone": "^7.29.9",
+    "@types/babel__standalone": "^7.1.9",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0"
+  }
+}
