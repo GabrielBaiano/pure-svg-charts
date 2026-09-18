@@ -6,8 +6,8 @@
 
 body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0b0f19;
-  color: #f1f5f9;
+  background: #16161e;
+  color: #c0caf5;
   min-height: 100vh;
 }
 
@@ -17,14 +17,14 @@ body {
   min-height: 100vh;
 }
 
-/* Top Navbar */
+/* Top Navbar (Tokyo Night) */
 .navbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 24px;
-  background: #0f172a;
-  border-bottom: 1px solid #1e293b;
+  padding: 12px 24px;
+  background: #1a1b26;
+  border-bottom: 1px solid #292e42;
 }
 
 .brand {
@@ -37,7 +37,7 @@ body {
   font-size: 18px;
   font-weight: 800;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 50%, #ec4899 100%);
+  background: linear-gradient(135deg, #7aa2f7 0%, #bb9af7 50%, #f7768e 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -49,30 +49,30 @@ body {
 }
 
 .nav-badge {
-  background: #1e293b;
-  color: #38bdf8;
+  background: #1f2335;
+  color: #7dcfff;
   padding: 3px 10px;
   border-radius: 9999px;
   font-size: 11px;
   font-weight: 600;
-  border: 1px solid #334155;
+  border: 1px solid #292e42;
 }
 
 .github-link {
-  color: #94a3b8;
+  color: #9aa5ce;
   text-decoration: none;
   font-size: 13px;
   font-weight: 600;
   padding: 6px 12px;
   border-radius: 6px;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #1f2335;
+  border: 1px solid #292e42;
   transition: all 0.2s ease;
 }
 
 .github-link:hover {
   color: #ffffff;
-  background: #334155;
+  background: #292e42;
 }
 
 /* Preset Toolbar */
@@ -81,8 +81,8 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 10px 24px;
-  background: #090d16;
-  border-bottom: 1px solid #1e293b;
+  background: #13141c;
+  border-bottom: 1px solid #24283b;
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -96,49 +96,53 @@ body {
 .toolbar-label {
   font-size: 12px;
   font-weight: 700;
-  color: #64748b;
+  color: #565f89;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .preset-btn {
-  background: #1e293b;
-  color: #94a3b8;
-  border: 1px solid #334155;
+  background: #1f2335;
+  color: #a9b1d6;
+  border: 1px solid #292e42;
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+  font-family: inherit;
 }
 
 .preset-btn:hover {
-  color: #f1f5f9;
-  border-color: #475569;
+  color: #c0caf5;
+  background: #24283b;
+  border-color: #3b4261;
 }
 
 .preset-btn.active {
-  background: #4f46e5;
-  color: #ffffff;
-  border-color: #6366f1;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.35);
+  background: #7aa2f7;
+  color: #15161e;
+  border-color: #7aa2f7;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(122, 162, 247, 0.4);
 }
 
 .action-btn {
-  background: #1e293b;
-  color: #cbd5e1;
-  border: 1px solid #334155;
+  background: #1f2335;
+  color: #c0caf5;
+  border: 1px solid #292e42;
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+  font-family: inherit;
 }
 
 .action-btn:hover {
-  background: #334155;
+  background: #292e42;
   color: #ffffff;
 }
 
@@ -162,9 +166,10 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #030712;
-  border-right: 1px solid #1e293b;
+  background: #1a1b26;
+  border-right: 1px solid #24283b;
   min-width: 0;
+  overflow: hidden;
 }
 
 .pane-header {
@@ -172,8 +177,8 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: #0f172a;
-  border-bottom: 1px solid #1e293b;
+  background: #1f2335;
+  border-bottom: 1px solid #24283b;
 }
 
 .tab-tag {
@@ -183,57 +188,31 @@ body {
   font-family: monospace;
   font-size: 12px;
   font-weight: 600;
-  color: #38bdf8;
-  background: #030712;
+  color: #7aa2f7;
+  background: #16161e;
   padding: 4px 10px;
   border-radius: 4px;
-  border: 1px solid #1e293b;
+  border: 1px solid #292e42;
 }
 
-.editor-wrapper {
-  display: flex;
+.codemirror-wrapper {
   flex: 1;
-  overflow: hidden;
-  position: relative;
-}
-
-.line-numbers {
-  width: 44px;
-  padding: 16px 0;
-  background: #060a15;
-  color: #334155;
-  font-family: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
-  line-height: 20px;
-  text-align: right;
-  padding-right: 10px;
-  user-select: none;
-  border-right: 1px solid #1e293b;
-  overflow: hidden;
-}
-
-.code-textarea {
-  flex: 1;
-  padding: 16px;
-  background: transparent;
-  color: #e2e8f0;
-  font-family: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
-  line-height: 20px;
-  border: none;
-  outline: none;
-  resize: none;
-  white-space: pre;
   overflow: auto;
-  tab-size: 2;
+  font-size: 13px;
+  line-height: 1.55;
+  font-family: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace;
+}
+
+.cm-editor {
+  height: 100% !important;
 }
 
 /* Right: Preview Pane */
 .preview-pane {
-  flex: 1;
+  flex: 1.15;
   display: flex;
   flex-direction: column;
-  background: #0b0f19;
+  background: #16161e;
   min-width: 0;
   overflow: auto;
 }
@@ -244,30 +223,30 @@ body {
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #10b981;
+  color: #9ece6a;
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
+  background: #9ece6a;
+  box-shadow: 0 0 8px #9ece6a;
 }
 
 .preview-content {
-  padding: 24px;
+  padding: 20px;
   flex: 1;
 }
 
 /* Buttons inside the interactive preview */
 .btn {
-  background: #1e293b;
-  color: #e2e8f0;
-  border: 1px solid #334155;
-  padding: 8px 14px;
+  background: #1f2335;
+  color: #c0caf5;
+  border: 1px solid #292e42;
+  padding: 7px 13px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -275,35 +254,43 @@ body {
 }
 
 .btn:hover {
-  background: #334155;
-  border-color: #475569;
+  background: #292e42;
+  border-color: #3b4261;
 }
 
 .btn.active {
-  background: #4f46e5;
-  color: #ffffff;
-  border-color: #6366f1;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+  background: #7aa2f7;
+  color: #15161e;
+  border-color: #7aa2f7;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(122, 162, 247, 0.45);
 }
 
 /* Theme presets CSS cards */
 .theme-card {
   border-radius: 16px;
-  padding: 24px;
+  padding: 22px;
   transition: all 0.3s ease;
+}
+
+.theme-tokyonight {
+  background: #1f2335;
+  border: 1px solid #292e42;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  color: #c0caf5;
 }
 
 .theme-cyberpunk {
   background: #050508;
-  border: 1px solid #00f0ff33;
+  border: 1px solid rgba(0, 240, 255, 0.25);
   box-shadow: 0 0 35px rgba(0, 240, 255, 0.15);
   color: #00f0ff;
 }
 
 .theme-glass {
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   color: #ffffff;
 }
@@ -317,8 +304,49 @@ body {
 
 .theme-terminal {
   background: #020c04;
-  border: 1px solid #22c55e44;
+  border: 1px solid rgba(34, 197, 94, 0.35);
   box-shadow: 0 0 25px rgba(34, 197, 94, 0.15);
   color: #4ade80;
   font-family: monospace;
+}
+
+/* 4-Config Comparison Grid */
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1050px) {
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.matrix-card {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.matrix-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.matrix-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }

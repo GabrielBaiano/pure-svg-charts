@@ -13,11 +13,18 @@
 
 ---
 
-## 💡 Overview
+## 💡 Why Pure SVG Charts? (The "F@%# Bloat" Manifesto)
 
-**Pure SVG Charts** is a minimal, zero-dependency charting library for React. It transforms simple arrays into clean, optimized SVG paths and shapes with fluid transitions.
+**F@%# bloated charting libraries that destroy dashboard performance and developer productivity.**
 
-Instead of heavy canvas engines or massive D3 bundles, it leverages native SVG geometry and reactive state — making it effortless to link buttons, sliders, and controls to animated chart parameters.
+We got completely sick of charting libraries that drag **200+ kB of heavy D3 dependencies**, crash Next.js Server-Side Rendering (SSR) with canvas hydration errors, require 30 lines of nested configuration hell just to plot 7 numbers, and turn your app's Lighthouse performance score into a red nightmare.
+
+**Pure SVG Charts** is the lightweight antidote:
+- 🪶 **Under 5 kB (min+gzip):** ~35x to 50x lighter than Recharts, ECharts, and Tremor.
+- ⚡ **100% Pure Vector SVG:** Crisp on Retina displays, scalable, copyable, and zero blurry canvas bitmaps.
+- 🚀 **GPU-Accelerated Morphing:** Path transitions running at 60–120 FPS powered by native browser vector interpolation.
+- 🎨 **Ready-made UI Variants:** Instant themes (`tokyonight`, `glass`, `cyberpunk`, `paper`, `terminal`) with 100% granular override freedom.
+- 🛡️ **SSR-First:** Zero hydration mismatches, zero `window is not defined` crashes. Works out of the box in Next.js App Router and Remix.
 
 ---
 

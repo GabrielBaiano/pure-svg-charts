@@ -1,36 +1,44 @@
 import React, { useId, useMemo, useState } from 'react';
+import { getSampledLabelIndices } from '../core/scale';
 import { ChartPadding, SvgBarChartProps } from '../core/types';
+import { CHART_VARIANTS } from '../core/variants';
 
 const DEFAULT_BAR_PADDING: ChartPadding = {
   top: 24,
   right: 24,
   bottom: 34,
-  left: 40
+  left: 48
 };
 
-export const SvgBarChart: React.FC<SvgBarChartProps> = ({
-  data = [],
-  width = 500,
-  height = 220,
-  color = '#6366f1',
-  radius = 6,
-  barGap = 0.3,
-  showGrid = true,
-  gridLines = 4,
-  showXAxis = true,
-  showYAxis = true,
-  showValues = false,
-  valueFormatter = (val) => String(Math.round(val)),
-  title,
-  subtitle,
-  metric,
-  glow = false,
-  padding,
-  animated = true,
-  className = '',
-  style,
-  onBarHover
-}) => {
+export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
+  const {
+    variant = 'default',
+    data = [],
+    width = 500,
+    height = 220,
+    radius = 6,
+    barGap = 0.3,
+    showValues = false,
+    valueFormatter = (val) => String(Math.round(val)),
+    title,
+    subtitle,
+    metric,
+    padding,
+    animated = true,
+    className = '',
+    style,
+    onBarHover
+  } = props;
+
+  const preset = CHART_VARIANTS[variant] || CHART_VARIANTS.default;
+
+  const color = props.color ?? preset.color;
+  const showGrid = props.showGrid ?? preset.showGrid;
+  const gridLines = props.gridLines ?? preset.gridLines;
+  const showXAxis = props.showXAxis ?? preset.showXAxis;
+  const showYAxis = props.showYAxis ?? preset.showYAxis;
+  const glow = props.glow ?? preset.glow;
+
   const gradientId = useId().replace(/:/g, '-');
   const glowId = `glow-${gradientId}`;
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -67,7 +75,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = ({
   const barWidth = Math.max(2, slotWidth * (1 - barGap));
   const barOffset = (slotWidth - barWidth) / 2;
 
-  // Grid steps
+  // Grid steps with rounded integers
   const gridSteps = useMemo(() => {
     if (!showGrid || gridLines <= 1) return [];
     const steps = [];
@@ -76,11 +84,29 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = ({
 
     for (let i = 0; i < gridLines; i++) {
       const y = pad.top + i * yStep;
-      const val = maxVal - i * valStep;
+      const val = Math.round(maxVal - i * valStep);
       steps.push({ y, val });
     }
     return steps;
   }, [showGrid, gridLines, maxVal, chartHeight, pad.top]);
+
+  // Clean evenly-spaced X-axis label sampling to prevent any overlap
+  const visibleLabelIndices = useMemo(() => {
+    const labeled = cleanData
+      .map((item, idx) => ({ label: item.label, idx }))
+      .filter((item) => item.label !== undefined && item.label !== '');
+    if (!labeled.length) return new Set<number>();
+
+    const maxLabels = Math.min(8, Math.max(2, Math.floor(chartWidth / 55)));
+    const sampledRelative = getSampledLabelIndices(labeled.length, maxLabels);
+    const selectedAbsolute = new Set<number>();
+    sampledRelative.forEach((relIdx) => {
+      if (labeled[relIdx]) {
+        selectedAbsolute.add(labeled[relIdx].idx);
+      }
+    });
+    return selectedAbsolute;
+  }, [cleanData, chartWidth]);
 
   const transitionStyle = animated
     ? {
@@ -88,19 +114,27 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = ({
       }
     : undefined;
 
+  const containerStyling: React.CSSProperties = {
+    position: 'relative',
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    ...preset.containerStyle,
+    ...style
+  };
+
   if (!cleanData.length) {
     return (
       <div
         className={`pure-svg-empty ${className}`}
         style={{
-          width: '100%',
+          ...containerStyling,
           height,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: '#94a3b8',
-          fontSize: '14px',
-          ...style
+          fontSize: '14px'
         }}
       >
         No data to display
@@ -109,16 +143,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = ({
   }
 
   return (
-    <div
-      className={`pure-svg-chart-container ${className}`}
-      style={{
-        position: 'relative',
-        width: '100%',
-        maxWidth: '100%',
-        fontFamily: 'inherit',
-        ...style
-      }}
-    >
+    <div className={`pure-svg-chart-container ${className}`} style={containerStyling}>
       {/* Optional Header */}
       {(title || metric || subtitle) && (
         <div
@@ -126,7 +151,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = ({
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'space-between',
-            marginBottom: '12px',
+            marginBottom: '14px',
             gap: '8px'
           }}
         >
@@ -148,7 +173,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = ({
                 style={{
                   margin: '2px 0 0',
                   fontSize: '12px',
-                  color: '#94a3b8'
+                  opacity: 0.75
                 }}
               >
                 {subtitle}
@@ -182,7 +207,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = ({
       >
         <defs>
           {glow && (
-            <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
+            <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
               <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor={color} floodOpacity="0.75" />
             </filter>
           )}
@@ -197,8 +222,8 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = ({
                 y1={step.y}
                 x2={width - pad.right}
                 y2={step.y}
-                stroke="#334155"
-                strokeOpacity={0.4}
+                stroke="currentColor"
+                strokeOpacity={0.15}
                 strokeDasharray="3 3"
                 strokeWidth={1}
               />
@@ -207,7 +232,8 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = ({
                   x={pad.left - 8}
                   y={step.y + 3.5}
                   textAnchor="end"
-                  fill="#64748b"
+                  fill="currentColor"
+                  opacity={0.65}
                   fontSize="10"
                   fontWeight="600"
                   fontFamily="monospace"
@@ -228,7 +254,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = ({
           return (
             <g key={`bar-${idx}`}>
               {/* Optional Permanent Value above bar */}
-              {showValues && (
+              {showValues && (cleanData.length <= 15 || visibleLabelIndices.has(idx)) && (
                 <text
                   x={centerX}
                   y={y - 6}
@@ -269,13 +295,14 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = ({
                 }}
               />
 
-              {/* X-Axis category label */}
-              {showXAxis && item.label && (
+              {/* X-Axis category label with smart sampling */}
+              {showXAxis && item.label && visibleLabelIndices.has(idx) && (
                 <text
                   x={centerX}
                   y={baselineY + 18}
                   textAnchor="middle"
-                  fill="#94a3b8"
+                  fill="currentColor"
+                  opacity={0.65}
                   fontSize="11"
                   fontWeight="500"
                 >

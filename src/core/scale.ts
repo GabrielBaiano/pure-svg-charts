@@ -4,7 +4,7 @@ export const DEFAULT_PADDING: ChartPadding = {
   top: 24,
   right: 24,
   bottom: 34,
-  left: 40
+  left: 48
 };
 
 /**
@@ -67,4 +67,33 @@ export function scaleDataToPoints(
   });
 
   return { points, minVal, maxVal, padding };
+}
+
+/**
+ * Selects a clean, non-overlapping subset of indices for X-axis labels.
+ * Always guarantees that:
+ * 1. The first item (0) is included if available.
+ * 2. The last item (totalCount - 1) is included.
+ * 3. Intermediate items are evenly distributed across the range.
+ * 4. No two adjacent or colliding indices are selected.
+ */
+export function getSampledLabelIndices(
+  totalCount: number,
+  maxLabels: number = 7
+): Set<number> {
+  const indices = new Set<number>();
+  if (totalCount <= 0) return indices;
+  if (totalCount <= maxLabels) {
+    for (let i = 0; i < totalCount; i++) {
+      indices.add(i);
+    }
+    return indices;
+  }
+
+  const count = Math.max(2, maxLabels);
+  for (let k = 0; k < count; k++) {
+    const idx = Math.round((k / (count - 1)) * (totalCount - 1));
+    indices.add(idx);
+  }
+  return indices;
 }

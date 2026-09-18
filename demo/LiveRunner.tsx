@@ -1,7 +1,8 @@
-import React, { useState, useEffect, Component as ReactClassComponent } from 'react';
+import React, { useState, useEffect, useRef, Component as ReactClassComponent } from 'react';
 import * as Babel from '@babel/standalone';
 import { SvgLineChart } from '../src/components/SvgLineChart';
 import { SvgBarChart } from '../src/components/SvgBarChart';
+import { CHART_VARIANTS } from '../src/core/variants';
 
 interface LiveRunnerProps {
   code: string;
@@ -54,6 +55,11 @@ class PreviewErrorBoundary extends ReactClassComponent<{ children: React.ReactNo
 export const LiveRunner: React.FC<LiveRunnerProps> = ({ code }) => {
   const [RenderedNode, setRenderedNode] = useState<React.ReactNode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'preview' | 'svg' | 'stats'>('preview');
+  const [svgMarkup, setSvgMarkup] = useState<string>('');
+  const [svgStats, setSvgStats] = useState<{ nodes: number; bytes: number } | null>(null);
+  const [copiedSvg, setCopiedSvg] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -93,7 +99,7 @@ export const LiveRunner: React.FC<LiveRunnerProps> = ({ code }) => {
         throw new Error('Failed to transpile code');
       }
 
-      // Safe evaluation scope with React and pure-svg-charts components
+      // Safe evaluation scope with React and pure-svg-charts components & variants
       const scope = {
         React,
         useState: React.useState,
@@ -101,7 +107,8 @@ export const LiveRunner: React.FC<LiveRunnerProps> = ({ code }) => {
         useMemo: React.useMemo,
         useCallback: React.useCallback,
         SvgLineChart,
-        SvgBarChart
+        SvgBarChart,
+        CHART_VARIANTS
       };
 
       const scopeKeys = Object.keys(scope);
@@ -123,6 +130,40 @@ export const LiveRunner: React.FC<LiveRunnerProps> = ({ code }) => {
       setError(err?.message || String(err));
     }
   }, [code]);
+
+  // Inspect generated SVG DOM in real-time
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (containerRef.current) {
+        const svgEl = containerRef.current.querySelector('svg');
+        if (svgEl) {
+          const raw = svgEl.outerHTML;
+          // Simple beautify for display
+          const formatted = raw
+            .replace(/></g, '>\n  <')
+            .replace(/<\/g>/g, '\n</g>')
+            .replace(/<\/defs>/g, '\n</defs>');
+          setSvgMarkup(formatted);
+          setSvgStats({
+            nodes: svgEl.querySelectorAll('*').length,
+            bytes: new Blob([raw]).size
+          });
+        } else {
+          setSvgMarkup('');
+          setSvgStats(null);
+        }
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [RenderedNode, code]);
+
+  const handleCopySvg = () => {
+    if (!svgMarkup) return;
+    navigator.clipboard.writeText(svgMarkup);
+    setCopiedSvg(true);
+    setTimeout(() => setCopiedSvg(false), 2000);
+  };
 
   if (error) {
     return (
@@ -146,8 +187,106 @@ export const LiveRunner: React.FC<LiveRunnerProps> = ({ code }) => {
   }
 
   return (
-    <PreviewErrorBoundary key={code}>
-      {RenderedNode}
-    </PreviewErrorBoundary>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Sub-header Navigation Tabs for Live View */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid #1e293b',
+          paddingBottom: '12px',
+          flexWrap: 'wrap',
+          gap: '8px'
+        }}
+      >
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button
+            className={`btn ${activeTab === 'preview' ? 'active' : ''}`}
+            style={{ padding: '6px 12px', fontSize: '12px' }}
+            onClick={() => setActiveTab('preview')}
+          >
+            🎨 Visual Chart
+          </button>
+          <button
+            className={`btn ${activeTab === 'svg' ? 'active' : ''}`}
+            style={{ padding: '6px 12px', fontSize: '12px' }}
+            onClick={() => setActiveTab('svg')}
+          >
+            ⚡ Pure SVG Code
+          </button>
+        </div>
+
+        {svgStats && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                color: '#38bdf8',
+                background: '#0f172a',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                border: '1px solid #334155'
+              }}
+            >
+              {svgStats.nodes} SVG Nodes
+            </span>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                color: '#10b981',
+                background: '#0f172a',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                border: '1px solid #334155'
+              }}
+            >
+              {svgStats.bytes} Bytes SVG
+            </span>
+            {activeTab === 'svg' && (
+              <button
+                className="btn"
+                style={{ padding: '4px 8px', fontSize: '11px' }}
+                onClick={handleCopySvg}
+              >
+                {copiedSvg ? '✓ Copied SVG!' : '📋 Copy SVG'}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Tab 1: Visual Interactive Output */}
+      <div style={{ display: activeTab === 'preview' ? 'block' : 'none' }}>
+        <div ref={containerRef}>
+          <PreviewErrorBoundary key={code}>
+            {RenderedNode}
+          </PreviewErrorBoundary>
+        </div>
+      </div>
+
+      {/* Tab 2: Raw Generated SVG Code Inspector */}
+      {activeTab === 'svg' && (
+        <div
+          style={{
+            background: '#030712',
+            border: '1px solid #1e293b',
+            borderRadius: '12px',
+            padding: '16px',
+            maxHeight: '400px',
+            overflow: 'auto',
+            fontFamily: 'monospace',
+            fontSize: '12px',
+            lineHeight: '1.6',
+            color: '#a5f3fc',
+            whiteSpace: 'pre'
+          }}
+        >
+          {svgMarkup || 'Rendering SVG...'}
+        </div>
+      )}
+    </div>
   );
 };

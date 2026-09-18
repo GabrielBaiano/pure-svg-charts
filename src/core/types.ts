@@ -17,6 +17,8 @@ export interface ChartPadding {
 }
 
 export interface BaseChartProps {
+  /** Visual theme preset: 'default' | 'cyberpunk' | 'glass' | 'paper' | 'terminal' | 'tokyonight' (default: 'default') */
+  variant?: 'default' | 'cyberpunk' | 'glass' | 'paper' | 'terminal' | 'tokyonight';
   /** Width in SVG coordinate units (default: 500) */
   width?: number;
   /** Height in SVG coordinate units (default: 220) */

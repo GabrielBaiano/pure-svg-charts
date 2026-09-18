@@ -1,37 +1,46 @@
 import React, { useId, useMemo, useState } from 'react';
 import { generateAreaPath, generateLinePath } from '../core/bezier';
-import { scaleDataToPoints } from '../core/scale';
+import { getSampledLabelIndices, scaleDataToPoints } from '../core/scale';
 import { Point, SvgLineChartProps } from '../core/types';
+import { CHART_VARIANTS } from '../core/variants';
 
-export const SvgLineChart: React.FC<SvgLineChartProps> = ({
-  data = [],
-  width = 500,
-  height = 220,
-  color = '#6366f1',
-  strokeWidth = 3,
-  smooth = true,
-  curvature = 0.25,
-  strokeDasharray,
-  showDots = true,
-  dotRadius = 4,
-  fillGradient = true,
-  gradientStartOpacity = 0.35,
-  showGrid = true,
-  gridLines = 4,
-  showXAxis = true,
-  showYAxis = true,
-  showValues = false,
-  valueFormatter = (val) => String(Math.round(val)),
-  title,
-  subtitle,
-  metric,
-  glow = false,
-  padding,
-  animated = true,
-  className = '',
-  style,
-  onPointHover
-}) => {
+export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
+  const {
+    variant = 'default',
+    data = [],
+    width = 500,
+    height = 220,
+    curvature = 0.25,
+    showDots = true,
+    dotRadius = 4,
+    showValues = false,
+    valueFormatter = (val) => String(Math.round(val)),
+    title,
+    subtitle,
+    metric,
+    padding,
+    animated = true,
+    className = '',
+    style,
+    onPointHover
+  } = props;
+
+  // Retrieve base styling from chosen variant
+  const preset = CHART_VARIANTS[variant] || CHART_VARIANTS.default;
+
+  // Explicit user props take precedence over variant presets
+  const color = props.color ?? preset.color;
+  const smooth = props.smooth ?? preset.smooth;
+  const strokeWidth = props.strokeWidth ?? preset.strokeWidth;
+  const strokeDasharray = props.strokeDasharray ?? preset.strokeDasharray;
+  const fillGradient = props.fillGradient ?? preset.fillGradient;
+  const gradientStartOpacity = props.gradientStartOpacity ?? preset.gradientStartOpacity;
+  const showGrid = props.showGrid ?? preset.showGrid;
+  const gridLines = props.gridLines ?? preset.gridLines;
+  const showXAxis = props.showXAxis ?? preset.showXAxis;
+  const showYAxis = props.showYAxis ?? preset.showYAxis;
+  const glow = props.glow ?? preset.glow;
+
   const gradientId = useId().replace(/:/g, '-');
   const glowId = `glow-${gradientId}`;
   const [activePoint, setActivePoint] = useState<Point | null>(null);
@@ -52,7 +61,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = ({
     return generateAreaPath(points, baselineY, smooth, curvature);
   }, [points, baselineY, smooth, curvature, fillGradient]);
 
-  // Compute grid line steps
+  // Compute grid line steps with integers
   const gridSteps = useMemo(() => {
     if (!showGrid || gridLines <= 1) return [];
     const steps = [];
@@ -61,11 +70,31 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = ({
 
     for (let i = 0; i < gridLines; i++) {
       const y = pad.top + i * yStep;
-      const val = maxVal - i * valStep;
+      const val = Math.round(maxVal - i * valStep);
       steps.push({ y, val });
     }
     return steps;
   }, [showGrid, gridLines, minVal, maxVal, chartHeight, pad.top]);
+
+  // Clean evenly-spaced X-axis label sampling to prevent any overlap
+  const visibleLabelIndices = useMemo(() => {
+    const labeled = points
+      .map((pt, idx) => ({ label: pt.label, idx }))
+      .filter((item) => item.label !== undefined && item.label !== '');
+    if (!labeled.length) return new Set<number>();
+
+    const chartWidth = Math.max(1, width - pad.left - pad.right);
+    const maxLabels = Math.min(8, Math.max(2, Math.floor(chartWidth / 55)));
+
+    const sampledRelative = getSampledLabelIndices(labeled.length, maxLabels);
+    const selectedAbsolute = new Set<number>();
+    sampledRelative.forEach((relIdx) => {
+      if (labeled[relIdx]) {
+        selectedAbsolute.add(labeled[relIdx].idx);
+      }
+    });
+    return selectedAbsolute;
+  }, [points, width, pad.left, pad.right]);
 
   const transitionStyle = animated
     ? {
@@ -83,19 +112,27 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = ({
     onPointHover?.(null);
   };
 
+  const containerStyling: React.CSSProperties = {
+    position: 'relative',
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    ...preset.containerStyle,
+    ...style
+  };
+
   if (!points.length) {
     return (
       <div
         className={`pure-svg-empty ${className}`}
         style={{
-          width: '100%',
+          ...containerStyling,
           height,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: '#94a3b8',
-          fontSize: '14px',
-          ...style
+          fontSize: '14px'
         }}
       >
         No data to display
@@ -104,16 +141,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = ({
   }
 
   return (
-    <div
-      className={`pure-svg-chart-container ${className}`}
-      style={{
-        position: 'relative',
-        width: '100%',
-        maxWidth: '100%',
-        fontFamily: 'inherit',
-        ...style
-      }}
-    >
+    <div className={`pure-svg-chart-container ${className}`} style={containerStyling}>
       {/* Optional Header (Title, Subtitle, Metric) */}
       {(title || metric || subtitle) && (
         <div
@@ -121,7 +149,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = ({
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'space-between',
-            marginBottom: '12px',
+            marginBottom: '14px',
             gap: '8px'
           }}
         >
@@ -143,7 +171,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = ({
                 style={{
                   margin: '2px 0 0',
                   fontSize: '12px',
-                  color: '#94a3b8'
+                  opacity: 0.75
                 }}
               >
                 {subtitle}
@@ -184,7 +212,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = ({
           )}
 
           {glow && (
-            <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
+            <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
               <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor={color} floodOpacity="0.75" />
             </filter>
           )}
@@ -199,8 +227,8 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = ({
                 y1={step.y}
                 x2={width - pad.right}
                 y2={step.y}
-                stroke="#334155"
-                strokeOpacity={0.4}
+                stroke="currentColor"
+                strokeOpacity={0.15}
                 strokeDasharray="3 3"
                 strokeWidth={1}
               />
@@ -209,7 +237,8 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = ({
                   x={pad.left - 8}
                   y={step.y + 3.5}
                   textAnchor="end"
-                  fill="#64748b"
+                  fill="currentColor"
+                  opacity={0.65}
                   fontSize="10"
                   fontWeight="600"
                   fontFamily="monospace"
@@ -250,7 +279,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = ({
           return (
             <g key={`point-${idx}`}>
               {/* Permanent Value label above point */}
-              {showValues && (
+              {showValues && (points.length <= 15 || visibleLabelIndices.has(idx)) && (
                 <text
                   x={pt.x}
                   y={pt.y - (dotRadius + 6)}
@@ -277,38 +306,54 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = ({
                 onMouseLeave={handleMouseLeave}
               />
 
-              {/* Visible Circle Dot */}
+              {/* Visible Circle Dot (Pure vector without clipping box) */}
               {showDots && (
-                <circle
-                  cx={pt.x}
-                  cy={pt.y}
-                  r={isHovered ? dotRadius * 1.6 : dotRadius}
-                  fill={isHovered ? '#ffffff' : color}
-                  stroke={color}
-                  strokeWidth={2}
-                  filter={glow ? `url(#${glowId})` : undefined}
-                  style={{
-                    transition:
-                      'cx 0.45s cubic-bezier(0.4, 0, 0.2, 1), cy 0.45s cubic-bezier(0.4, 0, 0.2, 1), r 0.2s ease',
-                    pointerEvents: 'none'
-                  }}
-                />
+                <>
+                  {isHovered && (
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={dotRadius * 2.2}
+                      fill={color}
+                      opacity={0.25}
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  )}
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={isHovered ? dotRadius * 1.5 : dotRadius}
+                    fill={isHovered ? '#ffffff' : color}
+                    stroke={color}
+                    strokeWidth={2}
+                    style={{
+                      transition:
+                        'cx 0.45s cubic-bezier(0.4, 0, 0.2, 1), cy 0.45s cubic-bezier(0.4, 0, 0.2, 1), r 0.2s ease',
+                      pointerEvents: 'none'
+                    }}
+                  />
+                </>
               )}
             </g>
           );
         })}
 
-        {/* X-Axis Category Labels */}
+        {/* X-Axis Category Labels with Smart Sampling for high-density datasets */}
         {showXAxis &&
           points.map((pt, idx) => {
-            if (!pt.label) return null;
+            if (!pt.label || !visibleLabelIndices.has(idx)) return null;
+
+            const isFirst = idx === 0;
+            const isLast = idx === points.length - 1;
+
             return (
               <text
                 key={`label-${idx}`}
                 x={pt.x}
                 y={baselineY + 18}
-                textAnchor="middle"
-                fill="#94a3b8"
+                textAnchor={isFirst ? 'start' : isLast ? 'end' : 'middle'}
+                fill="currentColor"
+                opacity={0.65}
                 fontSize="11"
                 fontWeight="500"
               >
