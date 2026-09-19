@@ -1,0 +1,3 @@
+# Ignore benchmarks directory when users download repository archive/zip from GitHub
+benchmarks/ export-ignore
+.github/ export-ignore

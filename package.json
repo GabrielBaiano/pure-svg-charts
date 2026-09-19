@@ -18,7 +18,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build --mode lib",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "benchmarks:install": "npm --prefix benchmarks install",
+    "benchmarks:dev": "npm --prefix benchmarks run dev",
+    "benchmarks:build": "npm --prefix benchmarks run build"
   },
   "keywords": [
     "react",

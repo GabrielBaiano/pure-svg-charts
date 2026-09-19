@@ -1,0 +1,242 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #16161e;
+  color: #c0caf5;
+  min-height: 100vh;
+}
+
+.bench-app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Header */
+.bench-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #24283b;
+  padding-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.bench-title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #7aa2f7 0%, #bb9af7 50%, #f7768e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bench-subtitle {
+  font-size: 13px;
+  color: #7982a9;
+  margin-top: 4px;
+}
+
+/* Controls Toolbar */
+.bench-toolbar {
+  background: #1a1b26;
+  border: 1px solid #24283b;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #565f89;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn {
+  background: #1f2335;
+  color: #a9b1d6;
+  border: 1px solid #292e42;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.btn:hover {
+  background: #24283b;
+  color: #c0caf5;
+  border-color: #3b4261;
+}
+
+.btn.active {
+  background: #7aa2f7;
+  color: #15161e;
+  border-color: #7aa2f7;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(122, 162, 247, 0.4);
+}
+
+.btn-primary {
+  background: #7aa2f7;
+  color: #15161e;
+  border-color: #7aa2f7;
+  font-weight: 700;
+}
+
+.btn-primary:hover {
+  background: #89b4fa;
+  color: #15161e;
+  box-shadow: 0 0 16px rgba(122, 162, 247, 0.5);
+}
+
+/* Scorecards Banner */
+.scorecards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.scorecard {
+  background: #1a1b26;
+  border: 1px solid #24283b;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scorecard-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #7982a9;
+}
+
+.scorecard-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: #7aa2f7;
+}
+
+.scorecard-desc {
+  font-size: 11px;
+  color: #9ece6a;
+  font-weight: 500;
+}
+
+/* Comparison Grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(580px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Metrics Table */
+.table-card {
+  background: #1a1b26;
+  border: 1px solid #24283b;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.table-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #24283b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bench-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.bench-table th {
+  background: #13141c;
+  color: #565f89;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 16px;
+  border-bottom: 1px solid #24283b;
+}
+
+.bench-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.bench-table tr.highlight {
+  background: rgba(122, 162, 247, 0.08);
+}
+
+.badge-win {
+  color: #9ece6a;
+  font-weight: 700;
+}
+
+.badge-heavy {
+  color: #f7768e;
+}
+
+/* Markdown Export Block */
+.export-card {
+  background: #13141c;
+  border: 1px solid #24283b;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.export-code {
+  background: #0d0e15;
+  border: 1px solid #1a1b26;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #7dcfff;
+  white-space: pre-wrap;
+  max-height: 260px;
+  overflow: auto;
+}
