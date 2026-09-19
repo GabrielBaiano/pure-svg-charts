@@ -532,20 +532,40 @@ const THEME_OPTIONS = [
   { id: 'default', icon: '🔷', label: 'Classic Indigo', desc: 'Clean default indigo blue' }
 ];
 
-const ADDABLE_PROPS = [
-  { propName: 'glow', snippet: 'glow', icon: '⚡', name: 'glow', desc: 'GPU drop shadow neon effect' },
-  { propName: 'crosshair', snippet: 'crosshair', icon: '🎯', name: 'crosshair', desc: 'Hover crosshair guidelines' },
-  { propName: 'showArrows', snippet: 'showArrows={false}', icon: '↗', name: 'showArrows={false}', desc: 'Hide crosshair directional arrows' },
-  { propName: 'dotRadius', snippet: 'dotRadius={2.5}', icon: '🔍', name: 'dotRadius={2.5}', desc: 'Small 2.5px point circles' },
-  { propName: 'showValues', snippet: 'showValues', icon: '🏷️', name: 'showValues', desc: 'Permanent value badges' },
-  { propName: 'strokeDasharray', snippet: 'strokeDasharray="4 4"', icon: '〰️', name: 'strokeDasharray="4 4"', desc: 'Dashed curve style' },
-  { propName: 'showDots', snippet: 'showDots={false}', icon: '⚪', name: 'showDots={false}', desc: 'Hide individual data points' },
-  { propName: 'fillGradient', snippet: 'fillGradient', icon: '💧', name: 'fillGradient', desc: 'Smooth gradient area under line' },
-  { propName: 'smooth', snippet: 'smooth', icon: '🌊', name: 'smooth', desc: 'Cubic Bézier spline interpolation' },
-  { propName: 'strokeWidth', snippet: 'strokeWidth={4}', icon: '📏', name: 'strokeWidth={4}', desc: 'Bolder 4px curve stroke' },
-  { propName: 'curvature', snippet: 'curvature={0.35}', icon: '📐', name: 'curvature={0.35}', desc: 'Higher spline tension' },
-  { propName: 'radius', snippet: 'radius={10}', icon: '🔲', name: 'radius={10}', desc: 'Rounded bar corner radius' },
-  { propName: 'barGap', snippet: 'barGap={0.15}', icon: '📊', name: 'barGap={0.15}', desc: 'Dense bar column spacing' }
+const ADDABLE_PROPS: {
+  propName: string;
+  snippet: string;
+  icon: string;
+  name: string;
+  desc: string;
+  components: string[];
+}[] = [
+  // --- SvgLineChart & SvgBarChart (BaseChartProps) ---
+  { propName: 'glow',             snippet: 'glow',                   icon: '⚡',  name: 'glow',                   desc: 'GPU drop shadow neon effect',             components: ['SvgLineChart', 'SvgBarChart'] },
+  { propName: 'crosshair',        snippet: 'crosshair',              icon: '🎯',  name: 'crosshair',               desc: 'Hover crosshair guidelines',              components: ['SvgLineChart', 'SvgBarChart'] },
+  { propName: 'showArrows',       snippet: 'showArrows={false}',     icon: '↗',   name: 'showArrows={false}',      desc: 'Hide crosshair directional arrows',       components: ['SvgLineChart', 'SvgBarChart'] },
+  { propName: 'showValues',       snippet: 'showValues',             icon: '🏷️',  name: 'showValues',              desc: 'Permanent value badges above points',     components: ['SvgLineChart', 'SvgBarChart'] },
+  // --- SvgLineChart only ---
+  { propName: 'dotRadius',        snippet: 'dotRadius={2.5}',        icon: '🔍',  name: 'dotRadius={2.5}',         desc: 'Small 2.5px point circles',               components: ['SvgLineChart'] },
+  { propName: 'strokeDasharray',  snippet: 'strokeDasharray="4 4"',  icon: '〰️', name: 'strokeDasharray="4 4"',   desc: 'Dashed curve style',                      components: ['SvgLineChart'] },
+  { propName: 'showDots',         snippet: 'showDots={false}',       icon: '⚪',  name: 'showDots={false}',        desc: 'Hide individual data point circles',      components: ['SvgLineChart'] },
+  { propName: 'fillGradient',     snippet: 'fillGradient',           icon: '💧',  name: 'fillGradient',            desc: 'Gradient area fill under the line',       components: ['SvgLineChart'] },
+  { propName: 'smooth',           snippet: 'smooth',                 icon: '🌊',  name: 'smooth',                  desc: 'Cubic Bézier spline interpolation',       components: ['SvgLineChart'] },
+  { propName: 'strokeWidth',      snippet: 'strokeWidth={4}',        icon: '📏',  name: 'strokeWidth={4}',         desc: 'Bolder 4px curve stroke',                 components: ['SvgLineChart'] },
+  { propName: 'curvature',        snippet: 'curvature={0.35}',       icon: '📐',  name: 'curvature={0.35}',        desc: 'Higher spline tension',                   components: ['SvgLineChart'] },
+  { propName: 'showLegend',       snippet: 'showLegend={false}',     icon: '📋',  name: 'showLegend={false}',      desc: 'Hide multi-series legend',                components: ['SvgLineChart'] },
+  // --- SvgBarChart only ---
+  { propName: 'radius',           snippet: 'radius={10}',            icon: '🔲',  name: 'radius={10}',             desc: 'Rounded bar corner radius',               components: ['SvgBarChart'] },
+  { propName: 'barGap',           snippet: 'barGap={0.15}',          icon: '📊',  name: 'barGap={0.15}',           desc: 'Dense bar column spacing',                components: ['SvgBarChart'] },
+  // --- SvgDonutChart only ---
+  { propName: 'showLegend',       snippet: 'showLegend={false}',     icon: '📋',  name: 'showLegend={false}',      desc: 'Hide slice legend',                       components: ['SvgDonutChart'] },
+  { propName: 'animated',         snippet: 'animated={false}',       icon: '⏸',   name: 'animated={false}',        desc: 'Disable slice transition animations',     components: ['SvgDonutChart'] },
+  { propName: 'innerRadiusRatio', snippet: 'innerRadiusRatio={0.5}', icon: '🍩',  name: 'innerRadiusRatio={0.5}',  desc: 'Thicker ring (0 = pie chart)',            components: ['SvgDonutChart'] },
+  // --- SvgSparkline only ---
+  { propName: 'fillArea',         snippet: 'fillArea={false}',       icon: '💧',  name: 'fillArea={false}',        desc: 'Disable gradient area fill',              components: ['SvgSparkline'] },
+  { propName: 'showEndDot',       snippet: 'showEndDot={false}',     icon: '⚪',  name: 'showEndDot={false}',      desc: 'Hide glowing end-point indicator',        components: ['SvgSparkline'] },
+  { propName: 'smooth',           snippet: 'smooth={false}',         icon: '🌊',  name: 'smooth={false}',          desc: 'Use straight line segments',              components: ['SvgSparkline'] },
+  { propName: 'strokeWidth',      snippet: 'strokeWidth={3}',        icon: '📏',  name: 'strokeWidth={3}',         desc: 'Bolder 3px sparkline stroke',             components: ['SvgSparkline'] },
 ];
 
 export function App() {
@@ -610,9 +630,26 @@ export function App() {
   const currentTheme = currentThemeMatch ? currentThemeMatch[1] : 'tokyonight';
   const activeThemeObj = THEME_OPTIONS.find((t) => t.id === currentTheme) || THEME_OPTIONS[0];
 
-  const activeProps = ADDABLE_PROPS
+  // Detect which chart component(s) are present in the current code
+  const ALL_COMPONENTS = ['SvgLineChart', 'SvgBarChart', 'SvgDonutChart', 'SvgSparkline'] as const;
+  const detectedComponents = ALL_COMPONENTS.filter((c) => code.includes(c));
+
+  // Only show props that apply to at least one of the detected components.
+  // Deduplicate by snippet so we never show the same toggle twice.
+  const seen = new Set<string>();
+  const filteredProps = ADDABLE_PROPS.filter((p) => {
+    if (!p.components.some((c) => detectedComponents.includes(c as any))) return false;
+    if (seen.has(p.propName)) return false;
+    seen.add(p.propName);
+    return true;
+  });
+
+  const activeProps = filteredProps
     .map((p) => p.propName)
     .filter((propName) => new RegExp('\\b' + propName + '(?:=[^\\s>]+)?\\b').test(code));
+
+  // Show theme button only when variant= is applicable (not sparkline-only presets)
+  const hasVariantProp = detectedComponents.some((c) => c !== 'SvgSparkline');
 
   return (
     <div className="app-wrapper">
@@ -717,43 +754,45 @@ export function App() {
 
           {/* Interactive Configs Quickbar */}
           <div className="editor-quickbar">
-            {/* Theme Selector Dropdown */}
-            <div className="quickbar-dropdown-container">
-              <button
-                className="quickbar-btn theme-btn"
-                onClick={() => {
-                  setIsThemeMenuOpen(!isThemeMenuOpen);
-                  setIsAddMenuOpen(false);
-                }}
-                title="Click to change theme variant in code"
-              >
-                <span>{activeThemeObj.icon} {activeThemeObj.label}</span>
-                <span className="dropdown-arrow">▾</span>
-              </button>
+            {/* Theme Selector Dropdown — only shown for components that support variant= */}
+            {hasVariantProp && (
+              <div className="quickbar-dropdown-container">
+                <button
+                  className="quickbar-btn theme-btn"
+                  onClick={() => {
+                    setIsThemeMenuOpen(!isThemeMenuOpen);
+                    setIsAddMenuOpen(false);
+                  }}
+                  title="Click to change theme variant in code"
+                >
+                  <span>{activeThemeObj.icon} {activeThemeObj.label}</span>
+                  <span className="dropdown-arrow">▾</span>
+                </button>
 
-              {isThemeMenuOpen && (
-                <div className="quickbar-menu theme-menu" onMouseLeave={() => setIsThemeMenuOpen(false)}>
-                  <div className="menu-header">Change Theme Variant</div>
-                  {THEME_OPTIONS.map((t) => (
-                    <button
-                      key={t.id}
-                      className={`menu-item ${currentTheme === t.id ? 'active' : ''}`}
-                      onClick={() => {
-                        handleThemeChange(t.id);
-                        setIsThemeMenuOpen(false);
-                      }}
-                    >
-                      <span className="menu-item-icon">{t.icon}</span>
-                      <div className="menu-item-info">
-                        <span className="menu-item-name">{t.label}</span>
-                        <span className="menu-item-desc">{t.desc}</span>
-                      </div>
-                      {currentTheme === t.id && <span className="menu-item-check">✓</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                {isThemeMenuOpen && (
+                  <div className="quickbar-menu theme-menu" onMouseLeave={() => setIsThemeMenuOpen(false)}>
+                    <div className="menu-header">Change Theme Variant</div>
+                    {THEME_OPTIONS.map((t) => (
+                      <button
+                        key={t.id}
+                        className={`menu-item ${currentTheme === t.id ? 'active' : ''}`}
+                        onClick={() => {
+                          handleThemeChange(t.id);
+                          setIsThemeMenuOpen(false);
+                        }}
+                      >
+                        <span className="menu-item-icon">{t.icon}</span>
+                        <div className="menu-item-info">
+                          <span className="menu-item-name">{t.label}</span>
+                          <span className="menu-item-desc">{t.desc}</span>
+                        </div>
+                        {currentTheme === t.id && <span className="menu-item-check">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Active Configs Pills (Click ✕ to remove from code) */}
             <div className="quickbar-pills">
@@ -771,53 +810,58 @@ export function App() {
               ))}
             </div>
 
-            {/* + Add Config Dropdown Button */}
-            <div className="quickbar-dropdown-container">
-              <button
-                className="quickbar-btn add-btn"
-                onClick={() => {
-                  setIsAddMenuOpen(!isAddMenuOpen);
-                  setIsThemeMenuOpen(false);
-                }}
-                title="Add a configuration prop to the chart component"
-              >
-                <span>➕ Add Config</span>
-                <span className="dropdown-arrow">▾</span>
-              </button>
+            {/* + Add Config Dropdown Button — shows only props compatible with the detected chart */}
+            {filteredProps.length > 0 && (
+              <div className="quickbar-dropdown-container">
+                <button
+                  className="quickbar-btn add-btn"
+                  onClick={() => {
+                    setIsAddMenuOpen(!isAddMenuOpen);
+                    setIsThemeMenuOpen(false);
+                  }}
+                  title="Add a configuration prop to the chart component"
+                >
+                  <span>+ Add Config</span>
+                  <span className="dropdown-arrow">▾</span>
+                </button>
 
-              {isAddMenuOpen && (
-                <div className="quickbar-menu add-menu" onMouseLeave={() => setIsAddMenuOpen(false)}>
-                  <div className="menu-header">Select Prop to Insert</div>
-                  {ADDABLE_PROPS.map((item) => {
-                    const isAlreadyAdded = activeProps.includes(item.propName);
-                    return (
-                      <button
-                        key={item.snippet}
-                        disabled={isAlreadyAdded}
-                        className={`menu-item ${isAlreadyAdded ? 'disabled' : ''}`}
-                        onClick={() => {
-                          if (!isAlreadyAdded) {
-                            handleAddProp(item.snippet);
-                            setIsAddMenuOpen(false);
-                          }
-                        }}
-                      >
-                        <span className="menu-item-icon">{item.icon}</span>
-                        <div className="menu-item-info">
-                          <span className="menu-item-name">{item.name}</span>
-                          <span className="menu-item-desc">{item.desc}</span>
-                        </div>
-                        {isAlreadyAdded ? (
-                          <span className="menu-item-badge">Added</span>
-                        ) : (
-                          <span className="menu-item-add-icon">+</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                {isAddMenuOpen && (
+                  <div className="quickbar-menu add-menu" onMouseLeave={() => setIsAddMenuOpen(false)}>
+                    {/* Show which component the props belong to */}
+                    <div className="menu-header">
+                      Props for {detectedComponents.join(' + ') || 'unknown'}
+                    </div>
+                    {filteredProps.map((item) => {
+                      const isAlreadyAdded = activeProps.includes(item.propName);
+                      return (
+                        <button
+                          key={item.snippet}
+                          disabled={isAlreadyAdded}
+                          className={`menu-item ${isAlreadyAdded ? 'disabled' : ''}`}
+                          onClick={() => {
+                            if (!isAlreadyAdded) {
+                              handleAddProp(item.snippet);
+                              setIsAddMenuOpen(false);
+                            }
+                          }}
+                        >
+                          <span className="menu-item-icon">{item.icon}</span>
+                          <div className="menu-item-info">
+                            <span className="menu-item-name">{item.name}</span>
+                            <span className="menu-item-desc">{item.desc}</span>
+                          </div>
+                          {isAlreadyAdded ? (
+                            <span className="menu-item-badge">Added</span>
+                          ) : (
+                            <span className="menu-item-add-icon">+</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="codemirror-wrapper">
