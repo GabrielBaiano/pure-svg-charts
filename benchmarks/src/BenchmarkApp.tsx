@@ -31,7 +31,8 @@ export function BenchmarkApp() {
     phase: 'mount' | 'update' | 'nested-update',
     actualDuration: number
   ) => {
-    const duration = Math.max(0.1, Math.round(actualDuration * 10) / 10);
+    // Keep 2 decimal places for precise microsecond-level timing (ex: 0.08 ms, 1.42 ms)
+    const duration = Math.max(0.01, Math.round(actualDuration * 100) / 100);
 
     // Give DOM a frame to settle, then read exact node count
     requestAnimationFrame(() => {
@@ -49,7 +50,7 @@ export function BenchmarkApp() {
             libId: id,
             pointCount,
             mountTimeMs: phase === 'mount' || !existing ? duration : existing.mountTimeMs,
-            reRenderTimeMs: phase === 'update' ? duration : (existing ? existing.reRenderTimeMs : Math.max(0.1, Math.round(duration * 0.7 * 10) / 10)),
+            reRenderTimeMs: phase === 'update' ? duration : (existing ? existing.reRenderTimeMs : Math.max(0.01, Math.round(duration * 0.7 * 100) / 100)),
             domNodeCount: nodeCount || (existing ? existing.domNodeCount : 0),
             fps: id === 'pure-svg-charts' ? 120 : (pointCount > 2000 ? (id === 'chartjs' ? 45 : 20) : 60)
           }
@@ -328,9 +329,9 @@ export function BenchmarkApp() {
                           `${lib.dependenciesCount} pkgs`
                         )}
                       </td>
-                      <td>{res && res.mountTimeMs !== undefined ? `${res.mountTimeMs.toFixed(1)} ms` : 'Measuring...'}</td>
+                      <td>{res && res.mountTimeMs !== undefined ? `${res.mountTimeMs.toFixed(2)} ms` : 'Measuring...'}</td>
                       <td>{res && res.domNodeCount !== undefined ? `${res.domNodeCount} nodes` : 'Counting...'}</td>
-                      <td>{res && res.reRenderTimeMs !== undefined ? `${res.reRenderTimeMs.toFixed(1)} ms` : 'Measuring...'}</td>
+                      <td>{res && res.reRenderTimeMs !== undefined ? `${res.reRenderTimeMs.toFixed(2)} ms` : 'Measuring...'}</td>
                       <td>
                         {isPure ? (
                           <span className="badge-win">🏆 Fastest & Lightest</span>
