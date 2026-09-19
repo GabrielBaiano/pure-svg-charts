@@ -3,6 +3,7 @@ import { generateAreaPath, generateLinePath } from '../core/bezier';
 import { getSampledLabelIndices, scaleDataToPoints } from '../core/scale';
 import { Point, SvgLineChartProps } from '../core/types';
 import { CHART_VARIANTS } from '../core/variants';
+import { SvgCrosshair } from './SvgCrosshair';
 
 export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
   const {
@@ -12,7 +13,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     height = 220,
     curvature = 0.25,
     showDots = true,
-    dotRadius = 4,
+    dotRadius: userDotRadius,
     showValues = false,
     valueFormatter = (val) => String(Math.round(val)),
     title,
@@ -40,6 +41,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
   const showXAxis = props.showXAxis ?? preset.showXAxis;
   const showYAxis = props.showYAxis ?? preset.showYAxis;
   const glow = props.glow ?? preset.glow;
+  const crosshair = props.crosshair ?? true;
 
   const gradientId = useId().replace(/:/g, '-');
   const glowId = `glow-${gradientId}`;
@@ -48,6 +50,14 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
   const { points, minVal, maxVal, padding: pad } = useMemo(() => {
     return scaleDataToPoints(data, width, height, padding);
   }, [data, width, height, padding]);
+
+  // Adaptive dot radius: high-density datasets gracefully scale down to prevent dots from collapsing into each other
+  const dotRadius = useMemo(() => {
+    if (userDotRadius !== undefined) return userDotRadius;
+    if (points.length > 50) return 2.5;
+    if (points.length > 25) return 3;
+    return 4;
+  }, [userDotRadius, points.length]);
 
   const baselineY = height - pad.bottom;
   const chartHeight = Math.max(1, height - pad.top - pad.bottom);
@@ -271,6 +281,22 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           filter={glow ? `url(#${glowId})` : undefined}
           style={transitionStyle}
         />
+
+        {/* Interactive Crosshair Guidelines & Directional Indicator Arrows */}
+        {crosshair && activePoint && (
+          <SvgCrosshair
+            x={activePoint.x}
+            y={activePoint.y}
+            baselineY={baselineY}
+            padLeft={pad.left}
+            padRight={pad.right}
+            width={width}
+            color={color}
+            valueStr={valueFormatter(activePoint.value)}
+            label={activePoint.label}
+            dotRadius={dotRadius}
+          />
+        )}
 
         {/* Data Point Circles and permanent values */}
         {points.map((pt, idx) => {

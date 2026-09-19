@@ -87,6 +87,12 @@ export function SalesWidget() {
 
 ---
 
+## Acknowledgments
+
+Special thanks to the authors and maintainers of **[@uiw/react-codemirror](https://github.com/uiwjs/react-codemirror)** for providing the modular, lightweight in-browser code editor and themes that power our live interactive playground.
+
+---
+
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE) © 2026 [Gabriel Baiano](https://github.com/GabrielBaiano).

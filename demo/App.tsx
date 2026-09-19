@@ -5,151 +5,283 @@ import { javascript } from '@codemirror/lang-javascript';
 import { LiveRunner } from './LiveRunner';
 
 const PRESETS = {
-  stress: `/**
- * ⚡ ABOUT PURE-SVG-CHARTS:
+  simple: `/**
+ * SIMPLE & STATIC (NO TRANSITIONS):
+ * Pure, zero-overhead SVG line chart with static data.
+ * No state complexity, no period buttons -- directly straight to the point.
+ * 
+ * ABOUT PURE-SVG-CHARTS:
  * F@%# 200kB D3 bloat and canvas overhead!
  * Compiles simple datasets directly into pure SVG paths (< 5kB bundle, zero dependencies).
- * 
- * 🛠️ WHAT THIS DEMO PROVES:
- * High-density stream (60 points) rendered effortlessly at 60-120 FPS with GPU acceleration.
+ * Pure vector cubic Bezier spline interpolation with hardware-accelerated rendering.
  */
 function ChartDemo() {
-  // 60 high-density points
+  // Baseline monthly metrics dataset (6 static data points)
+  const data = [
+    { label: 'Jan', value: 35 },
+    { label: 'Feb', value: 58 },
+    { label: 'Mar', value: 42 },
+    { label: 'Apr', value: 89 },
+    { label: 'May', value: 64 },
+    { label: 'Jun', value: 105 }
+  ];
+
+  return (
+    <div style={{ width: '100%', maxWidth: '720px', margin: '0 auto' }}>
+      {/* Zero-dependency pure SVG line chart */}
+      <SvgLineChart
+        variant="tokyonight"
+        data={data}
+        title="Monthly Active Users (MAU)"
+        subtitle="H1 2026 Direct Performance • Static Vector Rendering"
+        metric="105,400 users"
+        smooth
+        fillGradient
+        crosshair
+        height={340}
+      />
+    </div>
+  );
+}
+
+render(<ChartDemo />);
+
+// Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`,
+
+  periods: `/**
+ * MULTI-PERIOD TRANSITIONS:
+ * Demonstrates hardware-accelerated SVG path morphing across multiple timeframes.
+ * Click any period button to navigate between datasets and observe fluid 60-120 FPS transitions.
+ * 
+ * ABOUT PURE-SVG-CHARTS:
+ * F@%# 200kB D3 bloat and canvas overhead!
+ * Native CSS GPU transitions animate SVG paths ('d' attribute and point coordinates)
+ * smoothly without any external animation library or requestAnimationFrame loop.
+ */
+function ChartDemo() {
+  // Multi-timeframe telemetry datasets with dynamic density (6 to 60 points)
+  const PERIODS = {
+    '1H': [
+      { label: '10m', value: 120 },
+      { label: '20m', value: 180 },
+      { label: '30m', value: 165 },
+      { label: '40m', value: 240 },
+      { label: '50m', value: 210 },
+      { label: '60m', value: 290 }
+    ],
+    '24H': [
+      { label: '04h', value: 420 },
+      { label: '08h', value: 780 },
+      { label: '12h', value: 650 },
+      { label: '16h', value: 920 },
+      { label: '20h', value: 840 },
+      { label: '24h', value: 1150 }
+    ],
+    '7D': [
+      { label: 'Mon', value: 1800 },
+      { label: 'Tue', value: 2400 },
+      { label: 'Wed', value: 2100 },
+      { label: 'Thu', value: 3200 },
+      { label: 'Fri', value: 2900 },
+      { label: 'Sat', value: 3900 },
+      { label: 'Sun', value: 4600 }
+    ],
+    '30D': [
+      { label: 'W1', value: 8500 },
+      { label: 'W2', value: 12400 },
+      { label: 'W3', value: 16800 },
+      { label: 'W4', value: 22100 }
+    ]
+  };
+
+  // Active period state controlling reactive dataset switching
+  const [activePeriod, setActivePeriod] = useState('7D');
+  const [data, setData] = useState(PERIODS['7D']);
+
+  const switchPeriod = (period) => {
+    setActivePeriod(period);
+    setData(PERIODS[period]);
+  };
+
+  return (
+    <div style={{ width: '100%', maxWidth: '720px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Timeframe Navigation Buttons */}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: '#7aa2f7', textTransform: 'uppercase' }}>
+          Period:
+        </span>
+        {Object.keys(PERIODS).map((period) => (
+          <button
+            key={period}
+            className={"btn " + (activePeriod === period ? "active" : "")}
+            onClick={() => switchPeriod(period)}
+          >
+            {period}
+          </button>
+        ))}
+      </div>
+
+      {/* Reactive Morphing SVG Chart */}
+      <SvgLineChart
+        variant="tokyonight"
+        data={data}
+        title={"Telemetry Stream (" + activePeriod + ")"}
+        subtitle="Smooth SVG Bezier morphing across time periods"
+        metric={(data[data.length - 1]?.value?.toLocaleString() || "") + " ops"}
+        smooth
+        fillGradient
+        crosshair
+        height={340}
+      />
+    </div>
+  );
+}
+
+render(<ChartDemo />);
+
+// Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`,
+
+  stress: `/**
+ * HIGH-DENSITY STRESS TEST (60 POINTS):
+ * High-density stream rendered effortlessly at 60-120 FPS with hardware acceleration.
+ * Wide layout with adaptive point pitch ensures dots breathe and never collide.
+ * 
+ * ABOUT PURE-SVG-CHARTS:
+ * F@%# 200kB D3 bloat and canvas overhead!
+ * Compiles simple datasets directly into pure SVG paths (< 5kB bundle, zero dependencies).
+ * Proves that pure SVG geometry handles 60+ data points with zero frame drops.
+ */
+function ChartDemo() {
+  // WHY THIS COMMAND?
+  // We use Array.from() with sine + cosine trigonometric harmonics and integer rounding to
+  // synthesize an oscillating 60-point telemetry stream directly in-memory without needing
+  // external mock APIs or heavy bundle bloat. This demonstrates pure SVG vector morphing running at 60-120 FPS.
   const data = Array.from({ length: 60 }, (_, i) => ({
-    label: \`#\${i + 1}\`,
+    label: "#" + (i + 1),
     value: Math.round(180 + Math.sin(i / 4) * 80 + Math.cos(i / 2) * 35)
   }));
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: '100%', maxWidth: '850px', margin: '0 auto' }}>
+      {/* Wide canvas prevents dots from overlapping with full axis crosshairs */}
       <SvgLineChart
         variant="tokyonight"
         data={data}
         title="High-Density Telemetry Stream (60 Points)"
-        subtitle="Zero-overhead SVG geometry • Hardware-accelerated transitions"
+        subtitle="Wide canvas • Down & side axis crosshairs • 60-120 FPS"
         metric="245 units"
         smooth
         fillGradient
         strokeWidth={2}
-        height={360}
+        width={800}
+        height={340}
+        dotRadius={2.5}
+        crosshair
       />
     </div>
   );
 }
 
-render(<ChartDemo />);`,
+render(<ChartDemo />);
+
+// Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`,
 
   crypto: `/**
- * 🪙 ABOUT CRYPTO TICKER:
- * High-volatility financial streaming with neon glow & zero memory leaks.
+ * CRYPTO TICKER & SPOT INDEX:
+ * High-volatility financial streaming with neon glow and currency pair navigation.
+ * Demonstrates value formatting, neon drop-shadow filters, and instant asset switching.
+ * 
+ * ABOUT PURE-SVG-CHARTS:
+ * F@%# 200kB D3 bloat and canvas overhead!
+ * Delivers crisp financial visualization with SVG vector precision and zero latency.
  */
 function ChartDemo() {
-  const data = [
-    { label: '00:00', value: 64200 },
-    { label: '04:00', value: 65100 },
-    { label: '08:00', value: 63900 },
-    { label: '12:00', value: 67450 },
-    { label: '16:00', value: 66800 },
-    { label: '20:00', value: 68900 },
-    { label: '23:59', value: 68150 }
-  ];
+  // Spot market currency pairs with timestamp intervals
+  const PAIRS = {
+    'BTC': [
+      { label: '00:00', value: 64200 },
+      { label: '04:00', value: 65100 },
+      { label: '08:00', value: 63900 },
+      { label: '12:00', value: 67450 },
+      { label: '16:00', value: 66800 },
+      { label: '20:00', value: 68900 },
+      { label: '23:59', value: 68150 }
+    ],
+    'ETH': [
+      { label: '00:00', value: 3380 },
+      { label: '04:00', value: 3450 },
+      { label: '08:00', value: 3390 },
+      { label: '12:00', value: 3580 },
+      { label: '16:00', value: 3510 },
+      { label: '20:00', value: 3690 },
+      { label: '23:59', value: 3640 }
+    ],
+    'SOL': [
+      { label: '00:00', value: 142 },
+      { label: '04:00', value: 148 },
+      { label: '08:00', value: 139 },
+      { label: '12:00', value: 165 },
+      { label: '16:00', value: 158 },
+      { label: '20:00', value: 174 },
+      { label: '23:59', value: 171 }
+    ]
+  };
+
+  // Active cryptocurrency pair state
+  const [activePair, setActivePair] = useState('BTC');
+  const data = PAIRS[activePair];
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: '100%', maxWidth: '720px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Pair Switcher Buttons */}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: '#7aa2f7', textTransform: 'uppercase' }}>
+          Asset:
+        </span>
+        {Object.keys(PAIRS).map((pair) => (
+          <button
+            key={pair}
+            className={"btn " + (activePair === pair ? "active" : "")}
+            onClick={() => setActivePair(pair)}
+          >
+            {pair + "/USD"}
+          </button>
+        ))}
+      </div>
+
+      {/* Financial Chart with Currency Formatter & Glow Filter */}
       <SvgLineChart
         variant="tokyonight"
         data={data}
-        title="BTC / USD Spot Index"
+        title={activePair + " / USD Spot Index"}
         subtitle="24h Liquidity Variance"
-        metric="$68,150"
+        metric={"$" + (data[data.length - 1]?.value?.toLocaleString() || "")}
         smooth
         glow
         showValues
-        valueFormatter={(v) => \`$\${v.toLocaleString()}\`}
-        height={360}
+        crosshair
+        valueFormatter={(v) => "$" + v.toLocaleString()}
+        height={340}
       />
     </div>
   );
 }
 
-render(<ChartDemo />);`,
+render(<ChartDemo />);
 
-  saas: `/**
- * 🛍️ ABOUT SAAS REVENUE:
- * Clean fiscal cohorts with automated value badge positioning.
- */
-function ChartDemo() {
-  const data = [
-    { label: 'Jan', value: 24000 },
-    { label: 'Feb', value: 31000 },
-    { label: 'Mar', value: 28500 },
-    { label: 'Apr', value: 42000 },
-    { label: 'May', value: 39000 },
-    { label: 'Jun', value: 58000 }
-  ];
-
-  return (
-    <div style={{ width: '100%' }}>
-      <SvgLineChart
-        variant="tokyonight"
-        data={data}
-        title="Monthly Recurring Revenue (MRR)"
-        subtitle="H1 2026 Financial Cohort"
-        metric="$58,000 / mo"
-        smooth
-        fillGradient
-        showValues
-        valueFormatter={(v) => \`$\${Math.round(v / 1000)}k\`}
-        height={360}
-      />
-    </div>
-  );
-}
-
-render(<ChartDemo />);`,
-
-  telemetry: `/**
- * 🖥️ ABOUT CLUSTER TELEMETRY:
- * Low-overhead diagnostics with stepped linear SVG path & dashed stroke.
- */
-function ChartDemo() {
-  const data = [
-    { label: 'NODE_0', value: 42 },
-    { label: 'NODE_1', value: 78 },
-    { label: 'NODE_2', value: 35 },
-    { label: 'NODE_3', value: 94 },
-    { label: 'NODE_4', value: 58 },
-    { label: 'NODE_5', value: 82 },
-    { label: 'NODE_6', value: 64 },
-    { label: 'NODE_7', value: 71 }
-  ];
-
-  return (
-    <div style={{ width: '100%' }}>
-      <SvgLineChart
-        variant="terminal"
-        data={data}
-        title="CLUSTER_TELEMETRY_STREAM"
-        subtitle="Active Core CPU & I/O Utilization"
-        metric="LOAD: 71%"
-        smooth={false}
-        glow
-        strokeDasharray="4 4"
-        showValues
-        valueFormatter={(v) => \`\${Math.round(v)}%\`}
-        height={360}
-      />
-    </div>
-  );
-}
-
-render(<ChartDemo />);`,
+// Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`,
 
   quarterly: `/**
- * 📊 ABOUT QUARTERLY AUDIT:
- * Zero-dependency rounded SVG bar chart with responsive auto-spacing.
+ * QUARTERLY AUDIT & BAR ANALYSIS:
+ * Zero-dependency rounded SVG bar chart with responsive auto-spacing and hover tooltips.
+ * Clean categorical comparisons with customizable bar radius and gap ratios.
+ * 
+ * ABOUT PURE-SVG-CHARTS:
+ * F@%# 200kB D3 bloat and canvas overhead!
+ * Pure SVG rect geometry with CSS transitions for height, position, and color morphing.
  */
 function ChartDemo() {
+  // Fiscal quarters dataset
   const data = [
     { label: 'Q1 (Jan-Mar)', value: 140 },
     { label: 'Q2 (Apr-Jun)', value: 260 },
@@ -158,7 +290,8 @@ function ChartDemo() {
   ];
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: '100%', maxWidth: '720px', margin: '0 auto' }}>
+      {/* Rounded bar chart with value badges and crosshair tracking */}
       <SvgBarChart
         variant="tokyonight"
         data={data}
@@ -168,28 +301,62 @@ function ChartDemo() {
         radius={8}
         barGap={0.35}
         showValues
-        valueFormatter={(v) => \`$\${Math.round(v)}k\`}
-        height={360}
+        crosshair
+        valueFormatter={(v) => "$" + Math.round(v) + "k"}
+        height={340}
       />
     </div>
   );
 }
 
-render(<ChartDemo />);`
+render(<ChartDemo />);
+
+// Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`
 };
 
+const THEME_OPTIONS = [
+  { id: 'tokyonight', icon: '🌙', label: 'Tokyo Night', desc: 'Neon blue & deep purple night' },
+  { id: 'cyberpunk', icon: '⚡', label: 'Cyberpunk', desc: 'Hot yellow, cyan & dark neon' },
+  { id: 'glass', icon: '💎', label: 'Financial Glass', desc: 'Translucent emerald & dark slate' },
+  { id: 'paper', icon: '📄', label: 'Light Paper', desc: 'Minimalist editorial slate & ink' },
+  { id: 'terminal', icon: '📟', label: 'Retro Terminal', desc: 'Monochrome CRT phosphor green' },
+  { id: 'default', icon: '🔷', label: 'Classic Indigo', desc: 'Clean default indigo blue' }
+];
+
+const ADDABLE_PROPS = [
+  { propName: 'glow', snippet: 'glow', icon: '⚡', name: 'glow', desc: 'GPU drop shadow neon effect' },
+  { propName: 'crosshair', snippet: 'crosshair', icon: '🎯', name: 'crosshair', desc: 'Hover crosshair & directional arrows' },
+  { propName: 'dotRadius', snippet: 'dotRadius={2.5}', icon: '🔍', name: 'dotRadius={2.5}', desc: 'Small 2.5px point circles' },
+  { propName: 'showValues', snippet: 'showValues', icon: '🏷️', name: 'showValues', desc: 'Permanent value badges' },
+  { propName: 'strokeDasharray', snippet: 'strokeDasharray="4 4"', icon: '〰️', name: 'strokeDasharray="4 4"', desc: 'Dashed curve style' },
+  { propName: 'showDots', snippet: 'showDots={false}', icon: '⚪', name: 'showDots={false}', desc: 'Hide individual data points' },
+  { propName: 'fillGradient', snippet: 'fillGradient', icon: '💧', name: 'fillGradient', desc: 'Smooth gradient area under line' },
+  { propName: 'smooth', snippet: 'smooth', icon: '🌊', name: 'smooth', desc: 'Cubic Bézier spline interpolation' },
+  { propName: 'strokeWidth', snippet: 'strokeWidth={4}', icon: '📏', name: 'strokeWidth={4}', desc: 'Bolder 4px curve stroke' },
+  { propName: 'curvature', snippet: 'curvature={0.35}', icon: '📐', name: 'curvature={0.35}', desc: 'Higher spline tension' },
+  { propName: 'radius', snippet: 'radius={10}', icon: '🔲', name: 'radius={10}', desc: 'Rounded bar corner radius' },
+  { propName: 'barGap', snippet: 'barGap={0.15}', icon: '📊', name: 'barGap={0.15}', desc: 'Dense bar column spacing' }
+];
+
 export function App() {
-  const [selectedScenario, setSelectedScenario] = useState<keyof typeof PRESETS>('stress');
-  const [code, setCode] = useState(PRESETS.stress);
+  const [selectedScenario, setSelectedScenario] = useState<keyof typeof PRESETS>('simple');
+  const [code, setCode] = useState(PRESETS.simple);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+  const [liveStats, setLiveStats] = useState<{ nodes: number; bytes: number } | null>(null);
 
   const handleSelectScenario = (key: keyof typeof PRESETS) => {
     setSelectedScenario(key);
     setCode(PRESETS[key]);
+    setIsThemeMenuOpen(false);
+    setIsAddMenuOpen(false);
   };
 
   const handleReset = () => {
     setCode(PRESETS[selectedScenario]);
+    setIsThemeMenuOpen(false);
+    setIsAddMenuOpen(false);
   };
 
   const handleCopy = () => {
@@ -197,6 +364,45 @@ export function App() {
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
   };
+
+  // Switch Theme in Code
+  const handleThemeChange = (newTheme: string) => {
+    setCode((prev) => {
+      if (/variant=["'][^"']*["']/.test(prev)) {
+        return prev.replace(/variant=["'][^"']*["']/, `variant="${newTheme}"`);
+      }
+      return prev.replace(/(<Svg(?:Line|Bar)Chart)/, `$1
+        variant="${newTheme}"`);
+    });
+  };
+
+  // Add Prop to Code
+  const handleAddProp = (snippet: string) => {
+    setCode((prev) => {
+      const propName = snippet.split(/[={]/)[0].trim();
+      if (new RegExp('\\b' + propName + '\\b').test(prev)) {
+        return prev;
+      }
+      return prev.replace(/(\n\s*)(\/>)/, '$1        ' + snippet + '$1$2');
+    });
+  };
+
+  // Remove Prop from Code
+  const handleRemoveProp = (propName: string) => {
+    setCode((prev) => {
+      const regex = new RegExp('\\n\\s*' + propName + "(?:=(?:{[^}]*}|\"[^\"]*\"|'[^']*'|\\S+))?", 'g');
+      return prev.replace(regex, '');
+    });
+  };
+
+  // Parse active theme and active props from code
+  const currentThemeMatch = code.match(/variant=["']([^"']+)["']/);
+  const currentTheme = currentThemeMatch ? currentThemeMatch[1] : 'tokyonight';
+  const activeThemeObj = THEME_OPTIONS.find((t) => t.id === currentTheme) || THEME_OPTIONS[0];
+
+  const activeProps = ADDABLE_PROPS
+    .map((p) => p.propName)
+    .filter((propName) => new RegExp('\\b' + propName + '(?:=[^\\s>]+)?\\b').test(code));
 
   return (
     <div className="app-wrapper">
@@ -225,45 +431,45 @@ export function App() {
       {/* Scenarios Toolbar */}
       <div className="toolbar">
         <div className="preset-group">
-          <span className="toolbar-label">Scenarios:</span>
+          <span className="toolbar-label">Examples:</span>
+          <button
+            className={`preset-btn ${selectedScenario === 'simple' ? 'active' : ''}`}
+            onClick={() => handleSelectScenario('simple')}
+          >
+            Simple Static
+          </button>
+          <button
+            className={`preset-btn ${selectedScenario === 'periods' ? 'active' : ''}`}
+            onClick={() => handleSelectScenario('periods')}
+          >
+            Multi-Period Transitions
+          </button>
           <button
             className={`preset-btn ${selectedScenario === 'stress' ? 'active' : ''}`}
             onClick={() => handleSelectScenario('stress')}
           >
-            ⚡ High-Density Stress
+            High-Density Stress
           </button>
           <button
             className={`preset-btn ${selectedScenario === 'crypto' ? 'active' : ''}`}
             onClick={() => handleSelectScenario('crypto')}
           >
-            📈 Crypto Ticker
-          </button>
-          <button
-            className={`preset-btn ${selectedScenario === 'saas' ? 'active' : ''}`}
-            onClick={() => handleSelectScenario('saas')}
-          >
-            🛍️ SaaS Revenue
-          </button>
-          <button
-            className={`preset-btn ${selectedScenario === 'telemetry' ? 'active' : ''}`}
-            onClick={() => handleSelectScenario('telemetry')}
-          >
-            🖥️ Cluster Telemetry
+            Crypto Ticker
           </button>
           <button
             className={`preset-btn ${selectedScenario === 'quarterly' ? 'active' : ''}`}
             onClick={() => handleSelectScenario('quarterly')}
           >
-            📊 Quarterly Audit
+            Bar Audit
           </button>
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
           <button className="action-btn" onClick={handleReset} title="Reset to original code">
-            ↺ Reset
+            Reset
           </button>
           <button className="action-btn" onClick={handleCopy}>
-            {copySuccess ? '✓ Copied!' : '📋 Copy Code'}
+            {copySuccess ? '✓ Copied!' : 'Copy Code'}
           </button>
         </div>
       </div>
@@ -274,12 +480,116 @@ export function App() {
         <section className="editor-pane">
           <div className="pane-header">
             <div className="tab-tag">
-              <span>🌙</span>
               <span>LiveEditor.tsx (Tokyo Night)</span>
             </div>
             <span style={{ fontSize: '11px', color: '#7982a9' }}>
               @uiw/react-codemirror
             </span>
+          </div>
+
+          {/* Interactive Configs Quickbar */}
+          <div className="editor-quickbar">
+            {/* Theme Selector Dropdown */}
+            <div className="quickbar-dropdown-container">
+              <button
+                className="quickbar-btn theme-btn"
+                onClick={() => {
+                  setIsThemeMenuOpen(!isThemeMenuOpen);
+                  setIsAddMenuOpen(false);
+                }}
+                title="Click to change theme variant in code"
+              >
+                <span>{activeThemeObj.icon} {activeThemeObj.label}</span>
+                <span className="dropdown-arrow">▾</span>
+              </button>
+
+              {isThemeMenuOpen && (
+                <div className="quickbar-menu theme-menu" onMouseLeave={() => setIsThemeMenuOpen(false)}>
+                  <div className="menu-header">Change Theme Variant</div>
+                  {THEME_OPTIONS.map((t) => (
+                    <button
+                      key={t.id}
+                      className={`menu-item ${currentTheme === t.id ? 'active' : ''}`}
+                      onClick={() => {
+                        handleThemeChange(t.id);
+                        setIsThemeMenuOpen(false);
+                      }}
+                    >
+                      <span className="menu-item-icon">{t.icon}</span>
+                      <div className="menu-item-info">
+                        <span className="menu-item-name">{t.label}</span>
+                        <span className="menu-item-desc">{t.desc}</span>
+                      </div>
+                      {currentTheme === t.id && <span className="menu-item-check">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Active Configs Pills (Click ✕ to remove from code) */}
+            <div className="quickbar-pills">
+              {activeProps.map((prop) => (
+                <span key={prop} className="prop-chip" title={`Active config: ${prop}. Click ✕ to remove.`}>
+                  <span className="chip-name">{prop}</span>
+                  <button
+                    className="chip-remove"
+                    onClick={() => handleRemoveProp(prop)}
+                    title={`Remove ${prop} from code`}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+
+            {/* + Add Config Dropdown Button */}
+            <div className="quickbar-dropdown-container">
+              <button
+                className="quickbar-btn add-btn"
+                onClick={() => {
+                  setIsAddMenuOpen(!isAddMenuOpen);
+                  setIsThemeMenuOpen(false);
+                }}
+                title="Add a configuration prop to the chart component"
+              >
+                <span>➕ Add Config</span>
+                <span className="dropdown-arrow">▾</span>
+              </button>
+
+              {isAddMenuOpen && (
+                <div className="quickbar-menu add-menu" onMouseLeave={() => setIsAddMenuOpen(false)}>
+                  <div className="menu-header">Select Prop to Insert</div>
+                  {ADDABLE_PROPS.map((item) => {
+                    const isAlreadyAdded = activeProps.includes(item.propName);
+                    return (
+                      <button
+                        key={item.snippet}
+                        disabled={isAlreadyAdded}
+                        className={`menu-item ${isAlreadyAdded ? 'disabled' : ''}`}
+                        onClick={() => {
+                          if (!isAlreadyAdded) {
+                            handleAddProp(item.snippet);
+                            setIsAddMenuOpen(false);
+                          }
+                        }}
+                      >
+                        <span className="menu-item-icon">{item.icon}</span>
+                        <div className="menu-item-info">
+                          <span className="menu-item-name">{item.name}</span>
+                          <span className="menu-item-desc">{item.desc}</span>
+                        </div>
+                        {isAlreadyAdded ? (
+                          <span className="menu-item-badge">Added</span>
+                        ) : (
+                          <span className="menu-item-add-icon">+</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="codemirror-wrapper">
@@ -310,12 +620,15 @@ export function App() {
             </span>
             <div className="status-tag">
               <span className="status-dot" />
-              <span>100% Pure SVG</span>
+              <span>
+                100% Pure SVG
+                {liveStats ? ` • ${liveStats.nodes} Nodes • ${liveStats.bytes.toLocaleString()} B` : ''}
+              </span>
             </div>
           </div>
 
           <div className="preview-content">
-            <LiveRunner code={code} />
+            <LiveRunner code={code} onStatsChange={setLiveStats} />
           </div>
         </section>
       </main>

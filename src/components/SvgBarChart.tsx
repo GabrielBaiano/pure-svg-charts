@@ -2,6 +2,7 @@ import React, { useId, useMemo, useState } from 'react';
 import { getSampledLabelIndices } from '../core/scale';
 import { ChartPadding, SvgBarChartProps } from '../core/types';
 import { CHART_VARIANTS } from '../core/variants';
+import { SvgCrosshair } from './SvgCrosshair';
 
 const DEFAULT_BAR_PADDING: ChartPadding = {
   top: 24,
@@ -38,6 +39,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
   const showXAxis = props.showXAxis ?? preset.showXAxis;
   const showYAxis = props.showYAxis ?? preset.showYAxis;
   const glow = props.glow ?? preset.glow;
+  const crosshair = props.crosshair ?? true;
 
   const gradientId = useId().replace(/:/g, '-');
   const glowId = `glow-${gradientId}`;
@@ -243,6 +245,22 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
               )}
             </g>
           ))}
+
+        {/* Interactive Crosshair Guidelines & Directional Indicator Arrows */}
+        {crosshair && hoveredIndex !== null && cleanData[hoveredIndex] && (
+          <SvgCrosshair
+            x={pad.left + hoveredIndex * slotWidth + barOffset + barWidth / 2}
+            y={baselineY - Math.max(1, (cleanData[hoveredIndex].value / maxVal) * chartHeight)}
+            baselineY={baselineY}
+            padLeft={pad.left}
+            padRight={pad.right}
+            width={width}
+            color={color}
+            valueStr={valueFormatter(cleanData[hoveredIndex].value)}
+            label={cleanData[hoveredIndex].label}
+            dotRadius={Math.min(radius, barWidth / 2)}
+          />
+        )}
 
         {cleanData.map((item, idx) => {
           const barHeight = Math.max(1, (item.value / maxVal) * chartHeight);
