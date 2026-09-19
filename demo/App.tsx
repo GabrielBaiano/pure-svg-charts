@@ -542,8 +542,7 @@ const ADDABLE_PROPS: {
 }[] = [
   // --- SvgLineChart & SvgBarChart (BaseChartProps) ---
   { propName: 'glow',             snippet: 'glow',                   icon: '⚡',  name: 'glow',                   desc: 'GPU drop shadow neon effect',             components: ['SvgLineChart', 'SvgBarChart'] },
-  { propName: 'crosshair',        snippet: 'crosshair',              icon: '🎯',  name: 'crosshair',               desc: 'Hover crosshair guidelines',              components: ['SvgLineChart', 'SvgBarChart'] },
-  { propName: 'showArrows',       snippet: 'showArrows={false}',     icon: '↗',   name: 'showArrows={false}',      desc: 'Hide crosshair directional arrows',       components: ['SvgLineChart', 'SvgBarChart'] },
+  { propName: 'crosshair',        snippet: 'crosshair',              icon: '🎯',  name: 'crosshair',               desc: 'Position guidelines & axis badges',       components: ['SvgLineChart', 'SvgBarChart'] },
   { propName: 'showValues',       snippet: 'showValues',             icon: '🏷️',  name: 'showValues',              desc: 'Permanent value badges above points',     components: ['SvgLineChart', 'SvgBarChart'] },
   // --- SvgLineChart only ---
   { propName: 'dotRadius',        snippet: 'dotRadius={2.5}',        icon: '🔍',  name: 'dotRadius={2.5}',         desc: 'Small 2.5px point circles',               components: ['SvgLineChart'] },
@@ -601,8 +600,7 @@ export function App() {
       if (/variant=["'][^"']*["']/.test(prev)) {
         return prev.replace(/variant=["'][^"']*["']/, `variant="${newTheme}"`);
       }
-      return prev.replace(/(<Svg(?:Line|Bar)Chart)/, `$1
-        variant="${newTheme}"`);
+      return prev.replace(/(<(?:SvgLineChart|SvgBarChart|SvgDonutChart) )/, `$1\n        variant="${newTheme}"`);
     });
   };
 
@@ -610,22 +608,27 @@ export function App() {
   const handleAddProp = (snippet: string) => {
     setCode((prev) => {
       const propName = snippet.split(/[={]/)[0].trim();
-      if (new RegExp('\\b' + propName + '\\b').test(prev)) {
-        return prev;
-      }
-      return prev.replace(/(\n\s*)(\/>)/, '$1        ' + snippet + '$1$2');
+      // Match inside the chart JSX component only
+      return prev.replace(/(<(?:SvgLineChart|SvgBarChart|SvgDonutChart|SvgSparkline))([\s\S]*?)(\/>)/, (match, openTag, attrs, closeTag) => {
+        if (new RegExp('\\b' + propName + '\\b').test(attrs)) {
+          return match;
+        }
+        return openTag + attrs + '\n        ' + snippet + '\n      ' + closeTag;
+      });
     });
   };
 
-  // Remove Prop from Code
+  // Remove Prop from Code — strictly inside JSX chart tags to avoid corrupting JS data objects
   const handleRemoveProp = (propName: string) => {
     setCode((prev) => {
-      const regex = new RegExp('\\n\\s*' + propName + "(?:=(?:{[^}]*}|\"[^\"]*\"|'[^']*'|\\S+))?", 'g');
-      return prev.replace(regex, '');
+      return prev.replace(/(<(?:SvgLineChart|SvgBarChart|SvgDonutChart|SvgSparkline))([\s\S]*?)(\/>)/g, (_, openTag, attrs, closeTag) => {
+        const propRegex = new RegExp('\\n\\s*\\b' + propName + '\\b(?:=(?:\\{[^}]*\\}|"[^"]*"|\'[^\']*\'))?', 'g');
+        return openTag + attrs.replace(propRegex, '') + closeTag;
+      });
     });
   };
 
-  // Parse active theme and active props from code
+  // Parse active theme from code
   const currentThemeMatch = code.match(/variant=["']([^"']+)["']/);
   const currentTheme = currentThemeMatch ? currentThemeMatch[1] : 'tokyonight';
   const activeThemeObj = THEME_OPTIONS.find((t) => t.id === currentTheme) || THEME_OPTIONS[0];
@@ -634,8 +637,7 @@ export function App() {
   const ALL_COMPONENTS = ['SvgLineChart', 'SvgBarChart', 'SvgDonutChart', 'SvgSparkline'] as const;
   const detectedComponents = ALL_COMPONENTS.filter((c) => code.includes(c));
 
-  // Only show props that apply to at least one of the detected components.
-  // Deduplicate by snippet so we never show the same toggle twice.
+  // Only show props that apply to at least one of the detected components
   const seen = new Set<string>();
   const filteredProps = ADDABLE_PROPS.filter((p) => {
     if (!p.components.some((c) => detectedComponents.includes(c as any))) return false;
@@ -644,9 +646,13 @@ export function App() {
     return true;
   });
 
+  // Extract all JSX attributes from the chart component tag to avoid false positives with JS object properties
+  const chartTagMatch = code.match(/<(?:SvgLineChart|SvgBarChart|SvgDonutChart|SvgSparkline)([\s\S]*?)\/>/);
+  const chartAttrs = chartTagMatch ? chartTagMatch[1] : '';
+
   const activeProps = filteredProps
     .map((p) => p.propName)
-    .filter((propName) => new RegExp('\\b' + propName + '(?:=[^\\s>]+)?\\b').test(code));
+    .filter((propName) => new RegExp('\\b' + propName + '\\b').test(chartAttrs));
 
   // Show theme button only when variant= is applicable (not sparkline-only presets)
   const hasVariantProp = detectedComponents.some((c) => c !== 'SvgSparkline');

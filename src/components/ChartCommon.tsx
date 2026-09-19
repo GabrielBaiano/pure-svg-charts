@@ -60,8 +60,7 @@ export function useChartBase(props: any) {
     showXAxis: props.showXAxis ?? preset.showXAxis ?? true,
     showYAxis: props.showYAxis ?? preset.showYAxis ?? true,
     glow: props.glow ?? preset.glow ?? false,
-    crosshair: props.crosshair ?? true,
-    showArrows: props.showArrows ?? true,
+    crosshair: props.crosshair ?? false,
     animated: props.animated ?? true
   };
 }

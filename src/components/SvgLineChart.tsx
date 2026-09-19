@@ -53,7 +53,6 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     showYAxis,
     glow,
     crosshair,
-    showArrows,
     animated
   } = base;
 
@@ -243,27 +242,8 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
             color={activePoint.seriesColor || color}
             valueStr={valueFormatter(activePoint.value)}
             label={activePoint.label}
-            dotRadius={dotRadius}
-            showArrows={showArrows}
           />
         )}
-
-        {/* SVG-native tooltip — always anchored exactly above the hovered point */}
-        {activePoint && !showValues && !crosshair && (() => {
-          const text =
-            (activePoint.seriesName && isMultiSeries ? `${activePoint.seriesName}: ` : '') +
-            (activePoint.label ? `${activePoint.label} — ` : '') +
-            valueFormatter(activePoint.value);
-          const tw = Math.max(40, text.length * 7 + 16);
-          const tx = Math.max(tw / 2, Math.min(width - pad.right - tw / 2, activePoint.x));
-          const ty = activePoint.y - dotRadius - 8;
-          return (
-            <g pointerEvents="none">
-              <rect x={tx - tw / 2} y={ty - 16} width={tw} height={20} rx={5} fill="#0f172a" stroke={activePoint.seriesColor || '#334155'} strokeWidth={1} />
-              <text x={tx} y={ty - 2} textAnchor="middle" fill="#fff" fontSize="11" fontWeight="700" fontFamily="monospace">{text}</text>
-            </g>
-          );
-        })()}
 
         {renderedSeries.map((s) =>
           s.points.map((pt, ptIdx) => {
@@ -318,8 +298,8 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
             </text>
           ))}
 
-        {/* SVG-native hover tooltip when crosshair is active (anchored above the dot in viewBox coords) */}
-        {crosshair && activePoint && !showValues && (() => {
+        {/* SVG-native hover tooltip — always anchored exactly above active point */}
+        {activePoint && !showValues && (() => {
           const text =
             (activePoint.seriesName && isMultiSeries ? `${activePoint.seriesName}: ` : '') +
             (activePoint.label ? `${activePoint.label} — ` : '') +

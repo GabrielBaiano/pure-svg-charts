@@ -43,7 +43,6 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     showYAxis,
     glow,
     crosshair,
-    showArrows,
     animated
   } = base;
 
@@ -115,8 +114,6 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
             color={color}
             valueStr={valueFormatter(activeBar.value)}
             label={activeBar.label}
-            dotRadius={Math.min(radius, barWidth / 2)}
-            showArrows={showArrows}
           />
         )}
 

@@ -49,10 +49,8 @@ export interface BaseChartProps {
   metric?: string;
   /** Add a neon glow filter around the chart (default: false) */
   glow?: boolean;
-  /** Show crosshair guidelines with directional arrows on axes during hover (default: true) */
+  /** Show crosshair guidelines and axis value badges during hover (default: false) */
   crosshair?: boolean;
-  /** Show directional arrow heads on the crosshair guidelines (default: true) */
-  showArrows?: boolean;
   /** Custom CSS class names */
   className?: string;
   /** Inline styles for the outer container */
