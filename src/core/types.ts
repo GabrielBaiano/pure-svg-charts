@@ -55,6 +55,8 @@ export interface BaseChartProps {
   negativeColor?: string;
   /** Show horizontal zero-axis line when data crosses zero (default: true) */
   showZeroLine?: boolean;
+  /** Render chart in a themed card container with background, border, and padding (default: true). Set to false to render flush inside custom containers without double borders. */
+  card?: boolean;
   /** Custom CSS class names */
   className?: string;
   /** Inline styles for the outer container */

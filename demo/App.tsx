@@ -826,30 +826,26 @@ function ChartDemo() {
         gap: '16px'
       }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', width: '100%' }}>
-          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <ResponsiveContainer width="100%" height={240}>
-              <SvgLineChart
-                variant="tokyonight"
-                data={telemetry}
-                smooth
-                fillGradient
-                title="Throughput Rate"
-                metric="95 req/s"
-              />
-            </ResponsiveContainer>
-          </div>
+          <ResponsiveContainer width="100%" height={240}>
+            <SvgLineChart
+              variant="tokyonight"
+              data={telemetry}
+              smooth
+              fillGradient
+              title="Throughput Rate"
+              metric="95 req/s"
+            />
+          </ResponsiveContainer>
 
-          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <ResponsiveContainer width="100%" height={240}>
-              <SvgBarChart
-                variant="tokyonight"
-                data={breakdown}
-                radius={6}
-                title="Node Allocation"
-                metric="184 nodes"
-              />
-            </ResponsiveContainer>
-          </div>
+          <ResponsiveContainer width="100%" height={240}>
+            <SvgBarChart
+              variant="tokyonight"
+              data={breakdown}
+              radius={6}
+              title="Node Allocation"
+              metric="184 nodes"
+            />
+          </ResponsiveContainer>
         </div>
       </div>
     </div>
@@ -884,6 +880,7 @@ const ADDABLE_PROPS: {
   { propName: 'showValues',       snippet: 'showValues',             icon: '🏷️',  name: 'showValues',              desc: 'Permanent value badges above points',     components: ['SvgLineChart', 'SvgBarChart'] },
   { propName: 'negativeColor',    snippet: 'negativeColor="#f7768e"', icon: '🔴', name: 'negativeColor="#f7768e"', desc: 'Color for negative values below zero',    components: ['SvgBarChart', 'SvgLineChart'] },
   { propName: 'showZeroLine',     snippet: 'showZeroLine={true}',    icon: '➖',  name: 'showZeroLine',            desc: 'Prominent zero axis dividing line',       components: ['SvgBarChart', 'SvgLineChart'] },
+  { propName: 'card',             snippet: 'card={false}',           icon: '🔳',  name: 'card={false}',            desc: 'Render flush/transparent without card wrapper', components: ['SvgLineChart', 'SvgBarChart'] },
   // --- SvgLineChart only ---
   { propName: 'dotRadius',        snippet: 'dotRadius={2.5}',        icon: '🔍',  name: 'dotRadius={2.5}',         desc: 'Small 2.5px point circles',               components: ['SvgLineChart'] },
   { propName: 'strokeDasharray',  snippet: 'strokeDasharray="4 4"',  icon: '〰️', name: 'strokeDasharray="4 4"',   desc: 'Dashed curve style',                      components: ['SvgLineChart'] },

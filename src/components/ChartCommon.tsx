@@ -33,12 +33,23 @@ export function useChartBase(props: any) {
   const uid = useId().replace(/:/g, '-');
   const glowId = `gl-${uid}`;
 
+  const isCard = props.card !== false;
+
   const containerStyle: React.CSSProperties = {
     position: 'relative',
     width: '100%',
     maxWidth: '100%',
     boxSizing: 'border-box',
-    ...preset.containerStyle,
+    ...(isCard
+      ? preset.containerStyle
+      : {
+          borderRadius: 0,
+          padding: 0,
+          background: 'transparent',
+          border: 'none',
+          boxShadow: 'none',
+          color: preset.containerStyle?.color || 'currentColor'
+        }),
     ...props.style
   };
 
@@ -55,6 +66,7 @@ export function useChartBase(props: any) {
     uid,
     glowId,
     containerStyle,
+    card: isCard,
     showGrid: props.showGrid ?? preset.showGrid ?? true,
     gridLines: props.gridLines ?? preset.gridLines ?? 4,
     showXAxis: props.showXAxis ?? preset.showXAxis ?? true,

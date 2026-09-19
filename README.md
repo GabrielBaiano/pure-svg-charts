@@ -318,6 +318,7 @@ All chart components inherit these common properties:
 | `crosshair` | `boolean` | `false` | Enable interactive tracking guidelines and axis badges |
 | `negativeColor` | `string` | `'#f7768e'` | Accent color used for negative values below zero |
 | `showZeroLine` | `boolean` | `true` | Show prominent horizontal line at zero when crossing zero |
+| `card` | `boolean` | `true` | Render in a themed card container. Set to `false` to render flush inside custom containers |
 | `glow` | `boolean` | `false` | Enable GPU neon drop-shadow filter |
 | `valueFormatter` | `(val: number) => string` | `(v) => v.toLocaleString()` | Formatter for tooltips and axis labels |
 

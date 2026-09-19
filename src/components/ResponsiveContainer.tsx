@@ -86,7 +86,7 @@ export function useParentSize<T extends HTMLElement = HTMLDivElement>(options?: 
  */
 export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
   width = '100%',
-  height = '100%',
+  height = 'auto',
   aspect,
   minWidth = 0,
   minHeight = 0,
@@ -104,7 +104,15 @@ export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
   let effWidth = measuredWidth > 0 ? measuredWidth : 500;
   if (minWidth && effWidth < minWidth) effWidth = minWidth;
 
-  let effHeight = measuredHeight > 0 ? measuredHeight : 300;
+  const isPercentHeight = typeof height === 'string' && height.endsWith('%');
+  const isAutoHeight = height === 'auto' || height === undefined;
+
+  let effHeight = typeof height === 'number'
+    ? height
+    : measuredHeight > 0
+    ? measuredHeight
+    : 240;
+
   if (aspect && aspect > 0 && effWidth > 0) {
     effHeight = Math.round(effWidth / aspect);
   }
@@ -113,15 +121,16 @@ export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
 
   const containerStyle: React.CSSProperties = {
     width: typeof width === 'number' ? `${width}px` : width,
-    height: typeof height === 'number' ? `${height}px` : height,
+    height: isPercentHeight ? height : isAutoHeight ? 'auto' : undefined,
+    minHeight: typeof height === 'number' ? `${height}px` : (!isPercentHeight && !isAutoHeight ? height : undefined),
     minWidth: minWidth ? `${minWidth}px` : undefined,
-    minHeight: minHeight ? `${minHeight}px` : undefined,
     maxHeight: maxHeight ? `${maxHeight}px` : undefined,
     position: 'relative',
+    boxSizing: 'border-box',
     ...style
   };
 
-  const isReady = measuredWidth > 0 && (aspect ? true : measuredHeight > 0);
+  const isReady = measuredWidth > 0;
 
   return (
     <div ref={ref} className={`pure-svg-responsive-container ${className}`} style={containerStyle}>
