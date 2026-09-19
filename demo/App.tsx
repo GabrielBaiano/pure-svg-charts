@@ -325,7 +325,8 @@ const THEME_OPTIONS = [
 
 const ADDABLE_PROPS = [
   { propName: 'glow', snippet: 'glow', icon: '⚡', name: 'glow', desc: 'GPU drop shadow neon effect' },
-  { propName: 'crosshair', snippet: 'crosshair', icon: '🎯', name: 'crosshair', desc: 'Hover crosshair & directional arrows' },
+  { propName: 'crosshair', snippet: 'crosshair', icon: '🎯', name: 'crosshair', desc: 'Hover crosshair guidelines' },
+  { propName: 'showArrows', snippet: 'showArrows={false}', icon: '↗', name: 'showArrows={false}', desc: 'Hide crosshair directional arrows' },
   { propName: 'dotRadius', snippet: 'dotRadius={2.5}', icon: '🔍', name: 'dotRadius={2.5}', desc: 'Small 2.5px point circles' },
   { propName: 'showValues', snippet: 'showValues', icon: '🏷️', name: 'showValues', desc: 'Permanent value badges' },
   { propName: 'strokeDasharray', snippet: 'strokeDasharray="4 4"', icon: '〰️', name: 'strokeDasharray="4 4"', desc: 'Dashed curve style' },

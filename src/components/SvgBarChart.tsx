@@ -1,74 +1,57 @@
-import React, { useId, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { getSampledLabelIndices } from '../core/scale';
-import { ChartPadding, SvgBarChartProps } from '../core/types';
-import { CHART_VARIANTS } from '../core/variants';
+import { SvgBarChartProps } from '../core/types';
+import {
+  ChartEmpty,
+  ChartGlowFilter,
+  ChartGrid,
+  ChartHeader,
+  fullSvgStyle,
+  toCleanData,
+  useChartBase
+} from './ChartCommon';
 import { SvgCrosshair } from './SvgCrosshair';
-
-const DEFAULT_BAR_PADDING: ChartPadding = {
-  top: 24,
-  right: 24,
-  bottom: 34,
-  left: 48
-};
 
 export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
   const {
-    variant = 'default',
     data = [],
-    width = 500,
-    height = 220,
     radius = 6,
     barGap = 0.3,
     showValues = false,
-    valueFormatter = (val) => String(Math.round(val)),
     title,
     subtitle,
     metric,
-    padding,
-    animated = true,
     className = '',
-    style,
     onBarHover
   } = props;
 
-  const preset = CHART_VARIANTS[variant] || CHART_VARIANTS.default;
+  const base = useChartBase(props);
+  const {
+    color,
+    pad,
+    width,
+    height,
+    chartWidth,
+    chartHeight,
+    baselineY,
+    valueFormatter,
+    glowId,
+    containerStyle,
+    showGrid,
+    gridLines,
+    showXAxis,
+    showYAxis,
+    glow,
+    crosshair,
+    showArrows,
+    animated
+  } = base;
 
-  const color = props.color ?? preset.color;
-  const showGrid = props.showGrid ?? preset.showGrid;
-  const gridLines = props.gridLines ?? preset.gridLines;
-  const showXAxis = props.showXAxis ?? preset.showXAxis;
-  const showYAxis = props.showYAxis ?? preset.showYAxis;
-  const glow = props.glow ?? preset.glow;
-  const crosshair = props.crosshair ?? true;
-
-  const gradientId = useId().replace(/:/g, '-');
-  const glowId = `glow-${gradientId}`;
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-  const pad: ChartPadding = {
-    ...DEFAULT_BAR_PADDING,
-    ...padding
-  };
-
-  const chartWidth = Math.max(1, width - pad.left - pad.right);
-  const chartHeight = Math.max(1, height - pad.top - pad.bottom);
-  const baselineY = height - pad.bottom;
-
-  const cleanData = useMemo(() => {
-    return data.map((d) => {
-      if (typeof d === 'number') {
-        return { value: Number.isFinite(d) ? d : 0, label: undefined };
-      }
-      return {
-        value: Number.isFinite(d.value) ? d.value : 0,
-        label: d.label
-      };
-    });
-  }, [data]);
+  const cleanData = useMemo(() => toCleanData(data), [data]);
 
   const maxVal = useMemo(() => {
-    const vals = cleanData.map((d) => d.value);
-    const max = Math.max(...vals, 0);
+    const max = Math.max(...cleanData.map((d) => d.value), 0);
     return max === 0 ? 1 : max;
   }, [cleanData]);
 
@@ -77,22 +60,6 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
   const barWidth = Math.max(2, slotWidth * (1 - barGap));
   const barOffset = (slotWidth - barWidth) / 2;
 
-  // Grid steps with rounded integers
-  const gridSteps = useMemo(() => {
-    if (!showGrid || gridLines <= 1) return [];
-    const steps = [];
-    const valStep = maxVal / (gridLines - 1);
-    const yStep = chartHeight / (gridLines - 1);
-
-    for (let i = 0; i < gridLines; i++) {
-      const y = pad.top + i * yStep;
-      const val = Math.round(maxVal - i * valStep);
-      steps.push({ y, val });
-    }
-    return steps;
-  }, [showGrid, gridLines, maxVal, chartHeight, pad.top]);
-
-  // Clean evenly-spaced X-axis label sampling to prevent any overlap
   const visibleLabelIndices = useMemo(() => {
     const labeled = cleanData
       .map((item, idx) => ({ label: item.label, idx }))
@@ -100,165 +67,56 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     if (!labeled.length) return new Set<number>();
 
     const maxLabels = Math.min(8, Math.max(2, Math.floor(chartWidth / 55)));
-    const sampledRelative = getSampledLabelIndices(labeled.length, maxLabels);
-    const selectedAbsolute = new Set<number>();
-    sampledRelative.forEach((relIdx) => {
-      if (labeled[relIdx]) {
-        selectedAbsolute.add(labeled[relIdx].idx);
-      }
+    const sampled = getSampledLabelIndices(labeled.length, maxLabels);
+    const selected = new Set<number>();
+    sampled.forEach((relIdx) => {
+      if (labeled[relIdx]) selected.add(labeled[relIdx].idx);
     });
-    return selectedAbsolute;
+    return selected;
   }, [cleanData, chartWidth]);
 
   const transitionStyle = animated
-    ? {
-        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-      }
+    ? { transition: 'y 0.45s cubic-bezier(0.4, 0, 0.2, 1), height 0.45s cubic-bezier(0.4, 0, 0.2, 1)' }
     : undefined;
 
-  const containerStyling: React.CSSProperties = {
-    position: 'relative',
-    width: '100%',
-    maxWidth: '100%',
-    boxSizing: 'border-box',
-    ...preset.containerStyle,
-    ...style
-  };
-
   if (!cleanData.length) {
-    return (
-      <div
-        className={`pure-svg-empty ${className}`}
-        style={{
-          ...containerStyling,
-          height,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#94a3b8',
-          fontSize: '14px'
-        }}
-      >
-        No data to display
-      </div>
-    );
+    return <ChartEmpty height={height} className={className} style={containerStyle} />;
   }
 
+  const activeBar = hoveredIndex !== null ? cleanData[hoveredIndex] : null;
+
   return (
-    <div className={`pure-svg-chart-container ${className}`} style={containerStyling}>
-      {/* Optional Header */}
-      {(title || metric || subtitle) && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            marginBottom: '14px',
-            gap: '8px'
-          }}
-        >
-          <div>
-            {title && (
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  color: 'inherit'
-                }}
-              >
-                {title}
-              </h3>
-            )}
-            {subtitle && (
-              <p
-                style={{
-                  margin: '2px 0 0',
-                  fontSize: '12px',
-                  opacity: 0.75
-                }}
-              >
-                {subtitle}
-              </p>
-            )}
-          </div>
-          {metric && (
-            <div
-              style={{
-                fontSize: '18px',
-                fontWeight: 800,
-                color: color,
-                textAlign: 'right'
-              }}
-            >
-              {metric}
-            </div>
-          )}
-        </div>
-      )}
+    <div className={`pure-svg-chart-container ${className}`} style={containerStyle}>
+      <ChartHeader title={title} subtitle={subtitle} metric={metric} color={color} />
 
-      {/* SVG Bar Chart Engine */}
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        style={{
-          width: '100%',
-          height: 'auto',
-          display: 'block',
-          overflow: 'visible'
-        }}
-      >
-        <defs>
-          {glow && (
-            <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor={color} floodOpacity="0.75" />
-            </filter>
-          )}
-        </defs>
+      <svg viewBox={`0 0 ${width} ${height}`} style={fullSvgStyle}>
+        <defs>{glow && <ChartGlowFilter id={glowId} color={color} />}</defs>
 
-        {/* Grid lines & Y-Axis values */}
-        {showGrid &&
-          gridSteps.map((step, idx) => (
-            <g key={`bar-grid-${idx}`}>
-              <line
-                x1={pad.left}
-                y1={step.y}
-                x2={width - pad.right}
-                y2={step.y}
-                stroke="currentColor"
-                strokeOpacity={0.15}
-                strokeDasharray="3 3"
-                strokeWidth={1}
-              />
-              {showYAxis && (
-                <text
-                  x={pad.left - 8}
-                  y={step.y + 3.5}
-                  textAnchor="end"
-                  fill="currentColor"
-                  opacity={0.65}
-                  fontSize="10"
-                  fontWeight="600"
-                  fontFamily="monospace"
-                >
-                  {valueFormatter(step.val)}
-                </text>
-              )}
-            </g>
-          ))}
+        <ChartGrid
+          showGrid={showGrid}
+          showYAxis={showYAxis}
+          gridLines={gridLines}
+          minVal={0}
+          maxVal={maxVal}
+          pad={pad}
+          width={width}
+          height={height}
+          valueFormatter={valueFormatter}
+        />
 
-        {/* Interactive Crosshair Guidelines & Directional Indicator Arrows */}
-        {crosshair && hoveredIndex !== null && cleanData[hoveredIndex] && (
+        {crosshair && activeBar && (
           <SvgCrosshair
-            x={pad.left + hoveredIndex * slotWidth + barOffset + barWidth / 2}
-            y={baselineY - Math.max(1, (cleanData[hoveredIndex].value / maxVal) * chartHeight)}
+            x={pad.left + hoveredIndex! * slotWidth + barOffset + barWidth / 2}
+            y={baselineY - Math.max(1, (activeBar.value / maxVal) * chartHeight)}
             baselineY={baselineY}
             padLeft={pad.left}
             padRight={pad.right}
             width={width}
             color={color}
-            valueStr={valueFormatter(cleanData[hoveredIndex].value)}
-            label={cleanData[hoveredIndex].label}
+            valueStr={valueFormatter(activeBar.value)}
+            label={activeBar.label}
             dotRadius={Math.min(radius, barWidth / 2)}
+            showArrows={showArrows}
           />
         )}
 
@@ -270,8 +128,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
           const isHovered = hoveredIndex === idx;
 
           return (
-            <g key={`bar-${idx}`}>
-              {/* Optional Permanent Value above bar */}
+            <g key={idx}>
               {showValues && (cleanData.length <= 15 || visibleLabelIndices.has(idx)) && (
                 <text
                   x={centerX}
@@ -280,29 +137,21 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
                   fill="currentColor"
                   fontSize="11"
                   fontWeight="700"
-                  style={{
-                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-                  }}
                 >
                   {valueFormatter(item.value)}
                 </text>
               )}
 
-              {/* Bar rectangle */}
               <rect
                 x={x}
                 y={y}
                 width={barWidth}
                 height={barHeight}
                 rx={Math.min(radius, barWidth / 2)}
-                ry={Math.min(radius, barWidth / 2)}
                 fill={color}
                 opacity={isHovered ? 1 : 0.85}
                 filter={glow ? `url(#${glowId})` : undefined}
-                style={{
-                  ...transitionStyle,
-                  cursor: 'pointer'
-                }}
+                style={{ ...transitionStyle, cursor: 'pointer' }}
                 onMouseEnter={() => {
                   setHoveredIndex(idx);
                   onBarHover?.({ value: item.value, index: idx, label: item.label });
@@ -313,7 +162,6 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
                 }}
               />
 
-              {/* X-Axis category label with smart sampling */}
               {showXAxis && item.label && visibleLabelIndices.has(idx) && (
                 <text
                   x={centerX}
@@ -330,33 +178,23 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
             </g>
           );
         })}
-      </svg>
 
-      {/* Floating Tooltip */}
-      {hoveredIndex !== null && cleanData[hoveredIndex] && !showValues && (
-        <div
-          style={{
-            position: 'absolute',
-            left: `${((pad.left + hoveredIndex * slotWidth + slotWidth / 2) / width) * 100}%`,
-            top: `${((baselineY - (cleanData[hoveredIndex].value / maxVal) * chartHeight) / height) * 100}%`,
-            transform: 'translate(-50%, -130%)',
-            backgroundColor: '#0f172a',
-            color: '#ffffff',
-            padding: '5px 10px',
-            borderRadius: '6px',
-            fontSize: '12px',
-            fontWeight: 700,
-            pointerEvents: 'none',
-            whiteSpace: 'nowrap',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-            border: '1px solid #334155',
-            zIndex: 10
-          }}
-        >
-          {cleanData[hoveredIndex].label ? `${cleanData[hoveredIndex].label}: ` : ''}
-          {valueFormatter(cleanData[hoveredIndex].value)}
-        </div>
-      )}
+        {/* SVG-native hover tooltip — anchored directly above the bar top in viewBox coords */}
+        {activeBar && !showValues && (() => {
+          const bx = pad.left + hoveredIndex! * slotWidth + barOffset + barWidth / 2;
+          const by = baselineY - Math.max(1, (activeBar.value / maxVal) * chartHeight);
+          const text = (activeBar.label ? `${activeBar.label}: ` : '') + valueFormatter(activeBar.value);
+          const tw = Math.max(40, text.length * 7 + 16);
+          const tx = Math.max(pad.left + tw / 2, Math.min(width - pad.right - tw / 2, bx));
+          const ty = by - 10;
+          return (
+            <g pointerEvents="none">
+              <rect x={tx - tw / 2} y={ty - 16} width={tw} height={20} rx={5} fill="#0f172a" stroke={color} strokeWidth={1} />
+              <text x={tx} y={ty - 2} textAnchor="middle" fill="#fff" fontSize="11" fontWeight="700" fontFamily="monospace">{text}</text>
+            </g>
+          );
+        })()}
+      </svg>
     </div>
   );
 };

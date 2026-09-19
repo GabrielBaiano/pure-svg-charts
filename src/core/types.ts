@@ -51,15 +51,29 @@ export interface BaseChartProps {
   glow?: boolean;
   /** Show crosshair guidelines with directional arrows on axes during hover (default: true) */
   crosshair?: boolean;
+  /** Show directional arrow heads on the crosshair guidelines (default: true) */
+  showArrows?: boolean;
   /** Custom CSS class names */
   className?: string;
   /** Inline styles for the outer container */
   style?: React.CSSProperties;
 }
 
-export interface SvgLineChartProps extends BaseChartProps {
-  /** Array of numbers or { value, label } */
+export interface LineSeries {
+  id?: string;
+  name: string;
   data: DataValue[];
+  color?: string;
+  strokeWidth?: number;
+  strokeDasharray?: string;
+  fillGradient?: boolean;
+}
+
+export interface SvgLineChartProps extends BaseChartProps {
+  /** Array of numbers or { value, label } (used for single series) */
+  data?: DataValue[];
+  /** Multiple series configuration for multi-line charts */
+  series?: LineSeries[];
   /** Stroke width in pixels (default: 3) */
   strokeWidth?: number;
   /** Whether to render a smooth Bézier curve or straight lines (default: true) */
@@ -76,6 +90,8 @@ export interface SvgLineChartProps extends BaseChartProps {
   fillGradient?: boolean;
   /** Gradient start opacity (default: 0.35) */
   gradientStartOpacity?: number;
+  /** Show series legend when multiple series are provided (default: true) */
+  showLegend?: boolean;
   /** Callback when a point is hovered */
   onPointHover?: (point: Point | null) => void;
 }
@@ -89,4 +105,68 @@ export interface SvgBarChartProps extends BaseChartProps {
   barGap?: number;
   /** Callback when a bar is hovered */
   onBarHover?: (item: { value: number; index: number; label?: string } | null) => void;
+}
+
+export interface DonutSlice {
+  label: string;
+  value: number;
+  color?: string;
+}
+
+export interface SvgDonutChartProps {
+  /** Visual theme preset */
+  variant?: 'default' | 'cyberpunk' | 'glass' | 'paper' | 'terminal' | 'tokyonight';
+  /** Slices dataset */
+  data: DonutSlice[];
+  /** Size in pixels (both width and height, default: 240) */
+  size?: number;
+  /** Ratio of the inner hole [0..0.9] (0 for pie, default: 0.68) */
+  innerRadiusRatio?: number;
+  /** Optional title */
+  title?: string;
+  /** Optional subtitle */
+  subtitle?: string;
+  /** Highlighted metric string */
+  metric?: string;
+  /** Text shown in center of donut hole */
+  centerLabel?: string;
+  /** Large value shown in center of donut hole */
+  centerValue?: string | number;
+  /** Show slice legend (default: true) */
+  showLegend?: boolean;
+  /** Enable smooth CSS animations (default: true) */
+  animated?: boolean;
+  /** Formatter for slice values */
+  valueFormatter?: (val: number) => string;
+  /** Custom CSS class name */
+  className?: string;
+  /** Inline container styles */
+  style?: React.CSSProperties;
+  /** Callback on slice hover */
+  onSliceHover?: (slice: DonutSlice | null) => void;
+}
+
+export interface SvgSparklineProps {
+  /** Numerical values */
+  data: (number | { value: number })[];
+  /** Width in SVG units (default: 120) */
+  width?: number;
+  /** Height in SVG units (default: 34) */
+  height?: number;
+  /** Stroke color (default: #6366f1) */
+  color?: string;
+  /** Line thickness (default: 2) */
+  strokeWidth?: number;
+  /** Smooth curve (default: true) */
+  smooth?: boolean;
+  /** Fill area under the curve (default: true) */
+  fillArea?: boolean;
+  /** Area fill opacity (default: 0.15) */
+  fillOpacity?: number;
+  /** Glowing indicator dot at final point (default: true) */
+  showEndDot?: boolean;
+  /** Custom CSS class */
+  className?: string;
+  /** Container inline styles */
+  style?: React.CSSProperties;
 }

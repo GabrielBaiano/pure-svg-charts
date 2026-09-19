@@ -46,6 +46,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "terser": "^5.51.2",
     "typescript": "^5.7.3",
     "vite": "^6.2.0"
   }

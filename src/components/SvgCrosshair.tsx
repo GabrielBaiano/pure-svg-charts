@@ -11,6 +11,8 @@ export interface SvgCrosshairProps {
   valueStr: string;
   label?: string;
   dotRadius?: number;
+  /** Show directional arrows pointing toward axes (default: true) */
+  showArrows?: boolean;
 }
 
 export const SvgCrosshair: React.FC<SvgCrosshairProps> = ({
@@ -23,22 +25,24 @@ export const SvgCrosshair: React.FC<SvgCrosshairProps> = ({
   color,
   valueStr,
   label,
-  dotRadius = 4
+  dotRadius = 4,
+  showArrows = true
 }) => {
-  const valBadgeW = Math.max(34, valueStr.length * 7 + 10);
-  const labelBadgeW = label ? Math.max(32, label.length * 7 + 12) : 0;
-  const clampedX = Math.max(padLeft + labelBadgeW / 2, Math.min(width - padRight - labelBadgeW / 2, x));
+  const vW = Math.max(34, valueStr.length * 7 + 10);
+  const lW = label ? Math.max(32, label.length * 7 + 12) : 0;
+  const cX = Math.max(padLeft + lW / 2, Math.min(width - padRight - lW / 2, x));
 
-  // Combined arrow path: baseline down arrow, Y-axis side arrow, and localized chevrons
-  const downArrow = `M${x - 5} ${baselineY - 1}h10l-5 7z`;
-  const sideArrow = `M${padLeft + 1} ${y - 5}v10l-7 -5z`;
-  const localDown = y + dotRadius * 2 + 10 < baselineY ? `M${x - 3.5} ${y + dotRadius * 2 + 3}h7l-3.5 6z` : '';
-  const localSide = x - dotRadius * 2 - 10 > padLeft ? `M${x - dotRadius * 2 - 3} ${y - 3.5}v7l-6 -3.5z` : '';
-  const arrowsPath = `${downArrow} ${sideArrow} ${localDown} ${localSide}`;
+  // Arrows pointing toward the axis intersection points (optional)
+  const arrows = showArrows
+    ? `M${x - 5} ${baselineY - 1}h10l-5 7z` +
+      `M${padLeft + 1} ${y - 5}v10l-7 -5z` +
+      (y + dotRadius * 2 + 10 < baselineY ? `M${x - 3.5} ${y + dotRadius * 2 + 3}h7l-3.5 6z` : '') +
+      (x - dotRadius * 2 - 10 > padLeft ? `M${x - dotRadius * 2 - 3} ${y - 3.5}v7l-6 -3.5z` : '')
+    : '';
 
   return (
     <g className="pure-svg-crosshair" pointerEvents="none">
-      {/* Guidelines to axes */}
+      {/* Dashed guideline lines: vertical down to baseline, horizontal left to Y-axis */}
       <path
         d={`M${x} ${y}V${baselineY}M${padLeft} ${y}H${x}`}
         stroke={color}
@@ -47,18 +51,19 @@ export const SvgCrosshair: React.FC<SvgCrosshairProps> = ({
         strokeOpacity={0.65}
       />
 
-      {/* Directional indicator arrows */}
-      <path d={arrowsPath} fill={color} />
+      {/* Directional arrow heads (shown only when showArrows is true) */}
+      {showArrows && arrows && <path d={arrows} fill={color} />}
 
-      {/* Axis value and label badges */}
+      {/* Badge backgrounds */}
       <g fill={color}>
-        <rect x={padLeft - 7 - valBadgeW} y={y - 9} width={valBadgeW} height={18} rx={4} />
-        {label && <rect x={clampedX - labelBadgeW / 2} y={baselineY + 7} width={labelBadgeW} height={18} rx={4} />}
+        <rect x={padLeft - 7 - vW} y={y - 9} width={vW} height={18} rx={4} />
+        {label && <rect x={cX - lW / 2} y={baselineY + 7} width={lW} height={18} rx={4} />}
       </g>
 
-      <g fill="#ffffff" fontSize="10" fontWeight="700" fontFamily="monospace" textAnchor="middle">
-        <text x={padLeft - 7 - valBadgeW / 2} y={y + 3.5}>{valueStr}</text>
-        {label && <text x={clampedX} y={baselineY + 19.5}>{label}</text>}
+      {/* Badge labels */}
+      <g fill="#fff" fontSize="10" fontWeight="700" fontFamily="monospace" textAnchor="middle">
+        <text x={padLeft - 7 - vW / 2} y={y + 3.5}>{valueStr}</text>
+        {label && <text x={cX} y={baselineY + 19.5}>{label}</text>}
       </g>
     </g>
   );
