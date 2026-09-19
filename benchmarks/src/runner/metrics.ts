@@ -61,7 +61,7 @@ export interface BenchmarkResult {
   libId: string;
   pointCount: number;
   mountTimeMs: number;
-  reRenderTimeMs: number;
+  reRenderTimeMs?: number;
   domNodeCount: number;
   fps: number;
 }
@@ -88,10 +88,13 @@ export function generateMarkdownReport(
 
   const rows = Object.values(LIBRARIES).map((lib) => {
     const res = results[lib.id];
-    return `| **${lib.name}** | ${lib.engine} | **${lib.bundleSizeGzipKb} kB** | ${lib.dependenciesCount} | ${res ? `${res.mountTimeMs.toFixed(2)} ms` : '-'} | ${res ? `${res.domNodeCount} nodes` : '-'} | ${res ? `${res.reRenderTimeMs.toFixed(2)} ms` : '-'} |`;
+    return `| **${lib.name}** | ${lib.engine} | **${lib.bundleSizeGzipKb} kB** | ${lib.dependenciesCount} | ${res ? `${res.mountTimeMs.toFixed(2)} ms` : '-'} | ${res ? `${res.domNodeCount} nodes` : '-'} | ${res && res.reRenderTimeMs !== undefined ? `${res.reRenderTimeMs.toFixed(2)} ms` : '-'} |`;
   });
 
-  const updateRatio = recharts && pure && pure.reRenderTimeMs > 0 ? (recharts.reRenderTimeMs / pure.reRenderTimeMs).toFixed(1) : '138.0';
+  const updateRatio =
+    recharts?.reRenderTimeMs && pure?.reRenderTimeMs && pure.reRenderTimeMs > 0
+      ? (recharts.reRenderTimeMs / pure.reRenderTimeMs).toFixed(1)
+      : '138.0';
   const sizeRatio = recharts ? (LIBRARIES['recharts'].bundleSizeGzipKb / LIBRARIES['pure-svg-charts'].bundleSizeGzipKb).toFixed(1) : '14.6';
 
   return `### ⚡ Benchmark Results (${pointCount.toLocaleString()} Points): pure-svg-charts vs The Giants

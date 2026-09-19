@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, Profiler } from 'react';
+import React, { useState, useRef, useMemo, Profiler } from 'react';
 import { generateBenchmarkData, DENSITIES } from './runner/dataGenerator';
 import { LIBRARIES, BenchmarkResult, countDomNodes, generateMarkdownReport } from './runner/metrics';
 import { PureSvgAdapter } from './adapters/PureSvgAdapter';
@@ -11,7 +11,8 @@ export function BenchmarkApp() {
   const [viewMode, setViewMode] = useState<'visual' | 'table' | 'export'>('table');
   const [copied, setCopied] = useState(false);
   const [results, setResults] = useState<Record<string, BenchmarkResult>>({});
-  const [benchmarkRunId, setBenchmarkRunId] = useState<number>(1);
+  const [mountId, setMountId] = useState<number>(1);
+  const [streamOffset, setStreamOffset] = useState<number>(0);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
   // Measure container refs for live DOM node counting
@@ -20,21 +21,17 @@ export function BenchmarkApp() {
   const chartjsRef = useRef<HTMLDivElement>(null);
   const victoryRef = useRef<HTMLDivElement>(null);
 
-  // Generate deterministic dataset with run seed
+  // Generate realistic dataset with decimals; responds to streaming offset without remounting
   const data = useMemo(() => {
-    return generateBenchmarkData(pointCount);
-  }, [pointCount, benchmarkRunId]);
+    return generateBenchmarkData(pointCount, streamOffset);
+  }, [pointCount, streamOffset]);
 
-  // React <Profiler> onRender handler
+  // React <Profiler> onRender handler — captures raw, exact empirical duration
   const handleProfileRender = (
     id: string,
     phase: 'mount' | 'update' | 'nested-update',
     actualDuration: number
   ) => {
-    // Keep 2 decimal places for precise microsecond-level timing (ex: 0.08 ms, 1.42 ms)
-    const duration = Math.max(0.01, Math.round(actualDuration * 100) / 100);
-
-    // Give DOM a frame to settle, then read exact node count
     requestAnimationFrame(() => {
       let nodeCount = 0;
       if (id === 'pure-svg-charts') nodeCount = countDomNodes(pureRef.current);
@@ -49,10 +46,11 @@ export function BenchmarkApp() {
           [id]: {
             libId: id,
             pointCount,
-            mountTimeMs: phase === 'mount' || !existing ? duration : existing.mountTimeMs,
-            reRenderTimeMs: phase === 'update' ? duration : (existing ? existing.reRenderTimeMs : Math.max(0.01, Math.round(duration * 0.7 * 100) / 100)),
+            // True empirical latency directly from the React engine (no artificial rounding or guessing)
+            mountTimeMs: phase === 'mount' || !existing ? actualDuration : existing.mountTimeMs,
+            reRenderTimeMs: phase === 'update' ? actualDuration : existing?.reRenderTimeMs,
             domNodeCount: nodeCount || (existing ? existing.domNodeCount : 0),
-            fps: id === 'pure-svg-charts' ? 120 : (pointCount > 2000 ? (id === 'chartjs' ? 45 : 20) : 60)
+            fps: Math.min(120, Math.round(1000 / Math.max(8.33, actualDuration)))
           }
         };
       });
@@ -62,13 +60,13 @@ export function BenchmarkApp() {
   // Re-run benchmark with fresh component mounting
   const triggerBenchmark = () => {
     setResults({});
-    setBenchmarkRunId((prev) => prev + 1);
+    setMountId((prev) => prev + 1);
   };
 
-  // Trigger streaming re-render test
+  // Trigger streaming re-render test — updates data while keeping mountId constant to capture true update phase
   const triggerUpdateTest = () => {
     setIsUpdating(true);
-    setBenchmarkRunId((prev) => prev + 1);
+    setStreamOffset((prev) => prev + 1);
     setTimeout(() => setIsUpdating(false), 300);
   };
 
@@ -184,7 +182,7 @@ export function BenchmarkApp() {
         </div>
       </section>
 
-      {/* Always Mounted Adapters inside Profiler — guarantees live DOM measurement & accurate profiling */}
+      {/* Single Profiler Section — persistent mount guarantees live DOM node inspection and uncompromised profiling */}
       <section
         className="charts-grid"
         style={{
@@ -192,7 +190,7 @@ export function BenchmarkApp() {
         }}
       >
         <Profiler
-          key={`pure-${benchmarkRunId}`}
+          key={`pure-${mountId}`}
           id="pure-svg-charts"
           onRender={handleProfileRender}
         >
@@ -202,7 +200,7 @@ export function BenchmarkApp() {
         </Profiler>
 
         <Profiler
-          key={`recharts-${benchmarkRunId}`}
+          key={`recharts-${mountId}`}
           id="recharts"
           onRender={handleProfileRender}
         >
@@ -212,7 +210,7 @@ export function BenchmarkApp() {
         </Profiler>
 
         <Profiler
-          key={`chartjs-${benchmarkRunId}`}
+          key={`chartjs-${mountId}`}
           id="chartjs"
           onRender={handleProfileRender}
         >
@@ -222,7 +220,7 @@ export function BenchmarkApp() {
         </Profiler>
 
         <Profiler
-          key={`victory-${benchmarkRunId}`}
+          key={`victory-${mountId}`}
           id="victory"
           onRender={handleProfileRender}
         >
@@ -231,51 +229,6 @@ export function BenchmarkApp() {
           </div>
         </Profiler>
       </section>
-
-      {/* If not in visual view, keep offscreen profiler instances so metrics remain 100% live */}
-      {viewMode !== 'visual' && (
-        <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', height: 0, overflow: 'hidden' }}>
-          <Profiler
-            key={`pure-off-${benchmarkRunId}`}
-            id="pure-svg-charts"
-            onRender={handleProfileRender}
-          >
-            <div ref={pureRef}>
-              <PureSvgAdapter data={data} height={260} />
-            </div>
-          </Profiler>
-
-          <Profiler
-            key={`recharts-off-${benchmarkRunId}`}
-            id="recharts"
-            onRender={handleProfileRender}
-          >
-            <div ref={rechartsRef}>
-              <RechartsAdapter data={data} height={260} />
-            </div>
-          </Profiler>
-
-          <Profiler
-            key={`chartjs-off-${benchmarkRunId}`}
-            id="chartjs"
-            onRender={handleProfileRender}
-          >
-            <div ref={chartjsRef}>
-              <ChartJsAdapter data={data} height={260} />
-            </div>
-          </Profiler>
-
-          <Profiler
-            key={`victory-off-${benchmarkRunId}`}
-            id="victory"
-            onRender={handleProfileRender}
-          >
-            <div ref={victoryRef}>
-              <VictoryAdapter data={data} height={260} />
-            </div>
-          </Profiler>
-        </div>
-      )}
 
       {/* View Mode 1: Performance Metrics Table */}
       {viewMode === 'table' && (
@@ -331,7 +284,13 @@ export function BenchmarkApp() {
                       </td>
                       <td>{res && res.mountTimeMs !== undefined ? `${res.mountTimeMs.toFixed(2)} ms` : 'Measuring...'}</td>
                       <td>{res && res.domNodeCount !== undefined ? `${res.domNodeCount} nodes` : 'Counting...'}</td>
-                      <td>{res && res.reRenderTimeMs !== undefined ? `${res.reRenderTimeMs.toFixed(2)} ms` : 'Measuring...'}</td>
+                      <td>
+                        {res && res.reRenderTimeMs !== undefined ? (
+                          `${res.reRenderTimeMs.toFixed(2)} ms`
+                        ) : (
+                          <span style={{ color: '#7982a9', fontSize: '12px' }}>Click 🔄 Update</span>
+                        )}
+                      </td>
                       <td>
                         {isPure ? (
                           <span className="badge-win">🏆 Fastest & Lightest</span>
