@@ -51,3 +51,20 @@ export function generateAreaPath(
   // Draw line to bottom-right, then bottom-left, then close path
   return `${linePath} L ${lastPt.x},${baselineY} L ${firstPt.x},${baselineY} Z`;
 }
+
+/**
+ * Closes the polygon between two curves to create a stacked area segment.
+ */
+export function generateStackedAreaPath(
+  topPoints: Point[],
+  bottomPoints: Point[],
+  smooth = true,
+  curvature = 0.25
+): string {
+  if (topPoints.length === 0) return '';
+  const topLine = generateLinePath(topPoints, smooth, curvature);
+  const reversedBottom = [...bottomPoints].reverse();
+  const bottomSegs = reversedBottom.map((pt) => `L ${pt.x.toFixed(2)},${pt.y.toFixed(2)}`).join(' ');
+  return `${topLine} ${bottomSegs} Z`;
+}
+

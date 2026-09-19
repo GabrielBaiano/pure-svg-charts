@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { generateAreaPath, generateLinePath } from '../core/bezier';
+import { generateAreaPath, generateLinePath, generateStackedAreaPath } from '../core/bezier';
 import { downsampleLTTB } from '../core/lttb';
 import { getSampledLabelIndices, scaleDataToPoints } from '../core/scale';
 import { Point, SvgLineChartProps } from '../core/types';
@@ -17,6 +17,20 @@ import { SvgCrosshair } from './SvgCrosshair';
 interface HoveredSeriesPoint extends Point {
   seriesColor?: string;
   seriesName?: string;
+  originalValue?: number;
+}
+
+interface RenderedLineSeries {
+  id: string;
+  name: string;
+  color: string;
+  strokeWidth: number;
+  strokeDasharray?: string;
+  fillGradient?: boolean;
+  points: (Point & { originalValue?: number })[];
+  linePath: string;
+  areaPath: string;
+  gradId: string;
 }
 
 export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
@@ -31,6 +45,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     subtitle,
     metric,
     showLegend = true,
+    stacked = false,
     maxDisplayPoints = 300,
     className = '',
     onPointHover
@@ -91,17 +106,52 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     ];
   }, [series, data, color, strokeWidth, strokeDasharray, fillGradient]);
 
+  const isMultiSeries = Boolean(series && series.length > 1);
+
+  // Prepare series data with cumulative stacking when stacked is true
+  const stackedSeriesData = useMemo(() => {
+    if (!isMultiSeries || !stacked) {
+      return normalizedSeries.map((s) => ({
+        ...s,
+        dataWithOrig: s.data.map((d) => ({
+          value: typeof d === 'number' ? d : d.value,
+          label: typeof d === 'object' ? d.label : undefined,
+          origValue: typeof d === 'number' ? d : d.value
+        }))
+      }));
+    }
+
+    const pointCount = Math.max(0, ...normalizedSeries.map((s) => s.data.length));
+    const runningTotals = new Array(pointCount).fill(0);
+
+    return normalizedSeries.map((s) => {
+      const dataWithOrig = s.data.map((d, i) => {
+        const val = Math.max(0, typeof d === 'number' ? d : d.value);
+        runningTotals[i] = (runningTotals[i] || 0) + val;
+        return {
+          value: runningTotals[i],
+          origValue: val,
+          label: typeof d === 'object' ? d.label : undefined
+        };
+      });
+      return { ...s, dataWithOrig };
+    });
+  }, [normalizedSeries, isMultiSeries, stacked]);
+
   const { minVal, maxVal } = useMemo(() => {
     let min = Infinity;
     let max = -Infinity;
-    for (const s of normalizedSeries) {
-      for (const d of s.data) {
-        const v = typeof d === 'number' ? d : d.value;
+    for (const s of stackedSeriesData) {
+      for (const d of s.dataWithOrig) {
+        const v = d.value;
         if (Number.isFinite(v)) {
           if (v < min) min = v;
           if (v > max) max = v;
         }
       }
+    }
+    if (stacked && isMultiSeries) {
+      min = Math.min(0, min);
     }
     if (min === Infinity) return { minVal: 0, maxVal: 1 };
     if (min === max) {
@@ -109,25 +159,45 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
       max = max === 0 ? 1 : max + 1;
     }
     return { minVal: min, maxVal: max };
-  }, [normalizedSeries]);
+  }, [stackedSeriesData, stacked, isMultiSeries]);
 
-  const renderedSeries = useMemo(() => {
-    return normalizedSeries.map((s, idx) => {
+  const renderedSeries = useMemo<RenderedLineSeries[]>(() => {
+    const result: RenderedLineSeries[] = [];
+
+    for (let idx = 0; idx < stackedSeriesData.length; idx++) {
+      const s = stackedSeriesData[idx];
       const effectiveData =
-        maxDisplayPoints && maxDisplayPoints > 2 && s.data.length > maxDisplayPoints
-          ? downsampleLTTB(s.data, maxDisplayPoints)
-          : s.data;
+        maxDisplayPoints && maxDisplayPoints > 2 && s.dataWithOrig.length > maxDisplayPoints
+          ? downsampleLTTB(s.dataWithOrig, maxDisplayPoints)
+          : s.dataWithOrig;
 
       const { points } = scaleDataToPoints(effectiveData, width, height, pad, minVal, maxVal);
-      return {
+
+      const enrichedPoints = points.map((pt, pIdx) => ({
+        ...pt,
+        originalValue: effectiveData[pIdx]?.origValue ?? pt.value
+      }));
+
+      let areaPath = '';
+      if (s.fillGradient) {
+        if (stacked && isMultiSeries && idx > 0) {
+          areaPath = generateStackedAreaPath(enrichedPoints, result[idx - 1].points, smooth, curvature);
+        } else {
+          areaPath = generateAreaPath(enrichedPoints, baselineY, smooth, curvature);
+        }
+      }
+
+      result.push({
         ...s,
-        points,
-        linePath: generateLinePath(points, smooth, curvature),
-        areaPath: s.fillGradient ? generateAreaPath(points, baselineY, smooth, curvature) : '',
+        points: enrichedPoints,
+        linePath: generateLinePath(enrichedPoints, smooth, curvature),
+        areaPath,
         gradId: `gr-${uid}-${idx}`
-      };
-    });
-  }, [normalizedSeries, width, height, pad, baselineY, minVal, maxVal, smooth, curvature, uid, maxDisplayPoints]);
+      });
+    }
+
+    return result;
+  }, [stackedSeriesData, width, height, pad, baselineY, minVal, maxVal, smooth, curvature, uid, maxDisplayPoints, stacked, isMultiSeries]);
 
   const maxSeriesPoints = Math.max(0, ...renderedSeries.map((s) => s.points.length));
   const isHighDensity = maxSeriesPoints > 60;
@@ -209,8 +279,6 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
   if (!maxSeriesPoints) {
     return <ChartEmpty height={height} className={className} style={containerStyle} />;
   }
-
-  const isMultiSeries = Boolean(series && series.length > 1);
 
   return (
     <div className={`pure-svg-chart-container ${className}`} style={containerStyle}>
@@ -423,10 +491,12 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
 
         {/* SVG-native hover tooltip — always anchored exactly above active point */}
         {activePoint && !showValues && (() => {
+          const displayVal =
+            activePoint.originalValue !== undefined ? activePoint.originalValue : activePoint.value;
           const text =
             (activePoint.seriesName && isMultiSeries ? `${activePoint.seriesName}: ` : '') +
             (activePoint.label ? `${activePoint.label} — ` : '') +
-            valueFormatter(activePoint.value);
+            valueFormatter(displayVal);
           const tw = Math.max(40, text.length * 7 + 16);
           const tx = Math.max(pad.left + tw / 2, Math.min(width - pad.right - tw / 2, activePoint.x));
           const ty = activePoint.y - dotRadius - 8;

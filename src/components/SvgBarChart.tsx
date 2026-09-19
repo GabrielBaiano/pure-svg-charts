@@ -6,15 +6,36 @@ import {
   ChartGlowFilter,
   ChartGrid,
   ChartHeader,
+  DEFAULT_PALETTE,
   fullSvgStyle,
   toCleanData,
   useChartBase
 } from './ChartCommon';
 import { SvgCrosshair } from './SvgCrosshair';
 
+interface RenderedBarSegment {
+  key: string;
+  seriesIdx: number;
+  catIdx: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rx: number;
+  value: number;
+  label?: string;
+  seriesName: string;
+  seriesColor: string;
+  stackTotal?: number;
+  percent?: string;
+}
+
 export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
   const {
     data = [],
+    series,
+    stacked = true,
+    showLegend = true,
     radius = 6,
     barGap = 0.3,
     showValues = false,
@@ -46,47 +67,216 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     animated
   } = base;
 
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const cleanData = useMemo(() => toCleanData(data), [data]);
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
-  const maxVal = useMemo(() => {
-    const max = Math.max(...cleanData.map((d) => d.value), 0);
-    return max === 0 ? 1 : max;
-  }, [cleanData]);
+  const isMultiSeries = Boolean(series && series.length > 0);
 
-  const totalBars = cleanData.length;
-  const slotWidth = totalBars > 0 ? chartWidth / totalBars : chartWidth;
+  const normalizedSeries = useMemo(() => {
+    if (isMultiSeries && series) {
+      return series.map((s, idx) => ({
+        id: s.id || `bs-${idx}`,
+        name: s.name || `Series ${idx + 1}`,
+        color: s.color || DEFAULT_PALETTE[idx % DEFAULT_PALETTE.length],
+        data: toCleanData(s.data)
+      }));
+    }
+    return [
+      {
+        id: 'def',
+        name: 'Default',
+        color,
+        data: toCleanData(data)
+      }
+    ];
+  }, [isMultiSeries, series, data, color]);
+
+  const categoryCount = useMemo(() => {
+    return Math.max(0, ...normalizedSeries.map((s) => s.data.length));
+  }, [normalizedSeries]);
+
+  const categoryLabels = useMemo(() => {
+    const ref = normalizedSeries.find((s) => s.data.some((d) => d.label)) || normalizedSeries[0];
+    if (!ref) return [];
+    return Array.from({ length: categoryCount }, (_, i) => ref.data[i]?.label || `#${i + 1}`);
+  }, [normalizedSeries, categoryCount]);
+
+  const { maxVal, categoryTotals } = useMemo(() => {
+    if (categoryCount === 0) return { maxVal: 1, categoryTotals: [] };
+
+    if (isMultiSeries && stacked) {
+      const totals = Array.from({ length: categoryCount }, (_, catIdx) => {
+        return normalizedSeries.reduce(
+          (sum, s) => sum + Math.max(0, s.data[catIdx]?.value || 0),
+          0
+        );
+      });
+      const max = Math.max(...totals, 0);
+      return { maxVal: max === 0 ? 1 : max, categoryTotals: totals };
+    }
+
+    let max = 0;
+    for (const s of normalizedSeries) {
+      for (const d of s.data) {
+        if (d.value > max) max = d.value;
+      }
+    }
+    return { maxVal: max === 0 ? 1 : max, categoryTotals: [] };
+  }, [normalizedSeries, categoryCount, isMultiSeries, stacked]);
+
+  const slotWidth = categoryCount > 0 ? chartWidth / categoryCount : chartWidth;
   const barWidth = Math.max(2, slotWidth * (1 - barGap));
   const barOffset = (slotWidth - barWidth) / 2;
 
-  const visibleLabelIndices = useMemo(() => {
-    const labeled = cleanData
-      .map((item, idx) => ({ label: item.label, idx }))
-      .filter((item) => item.label !== undefined && item.label !== '');
-    if (!labeled.length) return new Set<number>();
+  const renderedSegments = useMemo<RenderedBarSegment[]>(() => {
+    if (categoryCount === 0) return [];
+    const segments: RenderedBarSegment[] = [];
 
+    if (isMultiSeries && stacked) {
+      for (let catIdx = 0; catIdx < categoryCount; catIdx++) {
+        const stackTotal = categoryTotals[catIdx] || 0;
+        const x = pad.left + catIdx * slotWidth + barOffset;
+        let accumY = 0;
+
+        // Determine which is the highest series with non-zero value to round its top corners
+        let lastActiveSeriesIdx = -1;
+        for (let sIdx = normalizedSeries.length - 1; sIdx >= 0; sIdx--) {
+          if ((normalizedSeries[sIdx].data[catIdx]?.value || 0) > 0) {
+            lastActiveSeriesIdx = sIdx;
+            break;
+          }
+        }
+
+        for (let sIdx = 0; sIdx < normalizedSeries.length; sIdx++) {
+          const s = normalizedSeries[sIdx];
+          const val = Math.max(0, s.data[catIdx]?.value || 0);
+          if (val === 0 && normalizedSeries.length > 1) continue;
+
+          const segHeight = Math.max(val > 0 ? 2 : 0, (val / maxVal) * chartHeight);
+          const segY = baselineY - accumY - segHeight;
+          const isTop = sIdx === lastActiveSeriesIdx;
+          const rx = isTop ? Math.min(radius, barWidth / 2) : 0;
+          accumY += segHeight;
+
+          const percent =
+            stackTotal > 0 ? ((val / stackTotal) * 100).toFixed(1) : '0';
+
+          segments.push({
+            key: `${s.id}-${catIdx}`,
+            seriesIdx: sIdx,
+            catIdx,
+            x,
+            y: segY,
+            width: barWidth,
+            height: segHeight,
+            rx,
+            value: val,
+            label: categoryLabels[catIdx],
+            seriesName: s.name,
+            seriesColor: s.color,
+            stackTotal,
+            percent
+          });
+        }
+      }
+    } else if (isMultiSeries && !stacked) {
+      const seriesCount = normalizedSeries.length;
+      const subBarWidth = Math.max(2, barWidth / seriesCount);
+
+      for (let catIdx = 0; catIdx < categoryCount; catIdx++) {
+        for (let sIdx = 0; sIdx < seriesCount; sIdx++) {
+          const s = normalizedSeries[sIdx];
+          const val = Math.max(0, s.data[catIdx]?.value || 0);
+          const subX = pad.left + catIdx * slotWidth + barOffset + sIdx * subBarWidth;
+          const subHeight = Math.max(1, (val / maxVal) * chartHeight);
+          const subY = baselineY - subHeight;
+          const rx = Math.min(radius, subBarWidth / 2);
+
+          segments.push({
+            key: `${s.id}-${catIdx}`,
+            seriesIdx: sIdx,
+            catIdx,
+            x: subX,
+            y: subY,
+            width: subBarWidth,
+            height: subHeight,
+            rx,
+            value: val,
+            label: categoryLabels[catIdx],
+            seriesName: s.name,
+            seriesColor: s.color
+          });
+        }
+      }
+    } else {
+      // Single series
+      const s = normalizedSeries[0];
+      for (let catIdx = 0; catIdx < categoryCount; catIdx++) {
+        const item = s.data[catIdx];
+        const val = item?.value || 0;
+        const x = pad.left + catIdx * slotWidth + barOffset;
+        const bHeight = Math.max(1, (val / maxVal) * chartHeight);
+        const y = baselineY - bHeight;
+        const rx = Math.min(radius, barWidth / 2);
+
+        segments.push({
+          key: `${s.id}-${catIdx}`,
+          seriesIdx: 0,
+          catIdx,
+          x,
+          y,
+          width: barWidth,
+          height: bHeight,
+          rx,
+          value: val,
+          label: item?.label || categoryLabels[catIdx],
+          seriesName: s.name,
+          seriesColor: s.color
+        });
+      }
+    }
+
+    return segments;
+  }, [categoryCount, isMultiSeries, stacked, normalizedSeries, categoryTotals, pad.left, slotWidth, barOffset, barWidth, baselineY, maxVal, chartHeight, radius, categoryLabels]);
+
+  const visibleLabelIndices = useMemo(() => {
+    if (!categoryLabels.length) return new Set<number>();
     const maxLabels = Math.min(8, Math.max(2, Math.floor(chartWidth / 55)));
-    const sampled = getSampledLabelIndices(labeled.length, maxLabels);
-    const selected = new Set<number>();
-    sampled.forEach((relIdx) => {
-      if (labeled[relIdx]) selected.add(labeled[relIdx].idx);
-    });
-    return selected;
-  }, [cleanData, chartWidth]);
+    const sampled = getSampledLabelIndices(categoryLabels.length, maxLabels);
+    return new Set(Array.from(sampled));
+  }, [categoryLabels, chartWidth]);
 
   const transitionStyle = animated
     ? { transition: 'y 0.45s cubic-bezier(0.4, 0, 0.2, 1), height 0.45s cubic-bezier(0.4, 0, 0.2, 1)' }
     : undefined;
 
-  if (!cleanData.length) {
+  if (categoryCount === 0) {
     return <ChartEmpty height={height} className={className} style={containerStyle} />;
   }
 
-  const activeBar = hoveredIndex !== null ? cleanData[hoveredIndex] : null;
+  const activeSegment = renderedSegments.find((seg) => seg.key === hoveredKey) || null;
 
   return (
     <div className={`pure-svg-chart-container ${className}`} style={containerStyle}>
       <ChartHeader title={title} subtitle={subtitle} metric={metric} color={color} />
+
+      {isMultiSeries && showLegend && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 12, fontSize: 12 }}>
+          {normalizedSeries.map((s) => (
+            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span
+                style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 3,
+                  backgroundColor: s.color,
+                  display: 'inline-block'
+                }}
+              />
+              <span style={{ opacity: 0.9, fontWeight: 600 }}>{s.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <svg viewBox={`0 0 ${width} ${height}`} style={fullSvgStyle}>
         <defs>{glow && <ChartGlowFilter id={glowId} color={color} />}</defs>
@@ -103,91 +293,120 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
           valueFormatter={valueFormatter}
         />
 
-        {crosshair && activeBar && (
+        {crosshair && activeSegment && (
           <SvgCrosshair
-            x={pad.left + hoveredIndex! * slotWidth + barOffset + barWidth / 2}
-            y={baselineY - Math.max(1, (activeBar.value / maxVal) * chartHeight)}
+            x={activeSegment.x + activeSegment.width / 2}
+            y={activeSegment.y}
             baselineY={baselineY}
             padLeft={pad.left}
             padRight={pad.right}
             width={width}
-            color={color}
-            valueStr={valueFormatter(activeBar.value)}
-            label={activeBar.label}
+            color={activeSegment.seriesColor || color}
+            valueStr={valueFormatter(activeSegment.value)}
+            label={activeSegment.label}
           />
         )}
 
-        {cleanData.map((item, idx) => {
-          const barHeight = Math.max(1, (item.value / maxVal) * chartHeight);
-          const x = pad.left + idx * slotWidth + barOffset;
-          const y = baselineY - barHeight;
-          const centerX = x + barWidth / 2;
-          const isHovered = hoveredIndex === idx;
+        {renderedSegments.map((seg) => {
+          const isHovered = hoveredKey === seg.key;
 
           return (
-            <g key={idx}>
-              {showValues && (cleanData.length <= 15 || visibleLabelIndices.has(idx)) && (
+            <g key={seg.key}>
+              {showValues && !isMultiSeries && (categoryCount <= 15 || visibleLabelIndices.has(seg.catIdx)) && (
                 <text
-                  x={centerX}
-                  y={y - 6}
+                  x={seg.x + seg.width / 2}
+                  y={seg.y - 6}
                   textAnchor="middle"
                   fill="currentColor"
                   fontSize="11"
                   fontWeight="700"
                 >
-                  {valueFormatter(item.value)}
+                  {valueFormatter(seg.value)}
                 </text>
               )}
 
               <rect
-                x={x}
-                y={y}
-                width={barWidth}
-                height={barHeight}
-                rx={Math.min(radius, barWidth / 2)}
-                fill={color}
-                opacity={isHovered ? 1 : 0.85}
+                x={seg.x}
+                y={seg.y}
+                width={seg.width}
+                height={seg.height}
+                rx={seg.rx}
+                fill={seg.seriesColor}
+                opacity={isHovered ? 1 : 0.88}
                 filter={glow ? `url(#${glowId})` : undefined}
                 style={{ ...transitionStyle, cursor: 'pointer' }}
                 onMouseEnter={() => {
-                  setHoveredIndex(idx);
-                  onBarHover?.({ value: item.value, index: idx, label: item.label });
+                  setHoveredKey(seg.key);
+                  onBarHover?.({
+                    value: seg.value,
+                    index: seg.catIdx,
+                    label: seg.label,
+                    seriesName: seg.seriesName
+                  });
                 }}
                 onMouseLeave={() => {
-                  setHoveredIndex(null);
+                  setHoveredKey(null);
                   onBarHover?.(null);
                 }}
               />
-
-              {showXAxis && item.label && visibleLabelIndices.has(idx) && (
-                <text
-                  x={centerX}
-                  y={baselineY + 18}
-                  textAnchor="middle"
-                  fill="currentColor"
-                  opacity={0.65}
-                  fontSize="11"
-                  fontWeight="500"
-                >
-                  {item.label}
-                </text>
-              )}
             </g>
           );
         })}
 
-        {/* SVG-native hover tooltip — anchored directly above the bar top in viewBox coords */}
-        {activeBar && !showValues && (() => {
-          const bx = pad.left + hoveredIndex! * slotWidth + barOffset + barWidth / 2;
-          const by = baselineY - Math.max(1, (activeBar.value / maxVal) * chartHeight);
-          const text = (activeBar.label ? `${activeBar.label}: ` : '') + valueFormatter(activeBar.value);
+        {showXAxis &&
+          categoryLabels.map((lbl, catIdx) => {
+            if (!visibleLabelIndices.has(catIdx)) return null;
+            const x = pad.left + catIdx * slotWidth + slotWidth / 2;
+            return (
+              <text
+                key={catIdx}
+                x={x}
+                y={baselineY + 18}
+                textAnchor="middle"
+                fill="currentColor"
+                opacity={0.65}
+                fontSize="11"
+                fontWeight="500"
+              >
+                {lbl}
+              </text>
+            );
+          })}
+
+        {/* SVG-native hover tooltip */}
+        {activeSegment && !showValues && (() => {
+          const bx = activeSegment.x + activeSegment.width / 2;
+          const by = activeSegment.y;
+          const labelPrefix = activeSegment.label ? `${activeSegment.label}: ` : '';
+          const percentSuffix = activeSegment.percent ? ` (${activeSegment.percent}%)` : '';
+          const seriesPrefix = isMultiSeries ? `${activeSegment.seriesName} — ` : '';
+          const text = `${seriesPrefix}${labelPrefix}${valueFormatter(activeSegment.value)}${percentSuffix}`;
           const tw = Math.max(40, text.length * 7 + 16);
           const tx = Math.max(pad.left + tw / 2, Math.min(width - pad.right - tw / 2, bx));
           const ty = by - 10;
           return (
             <g pointerEvents="none">
-              <rect x={tx - tw / 2} y={ty - 16} width={tw} height={20} rx={5} fill="#0f172a" stroke={color} strokeWidth={1} />
-              <text x={tx} y={ty - 2} textAnchor="middle" fill="#fff" fontSize="11" fontWeight="700" fontFamily="monospace">{text}</text>
+              <rect
+                x={tx - tw / 2}
+                y={ty - 16}
+                width={tw}
+                height={20}
+                rx={5}
+                fill="#0f172a"
+                stroke={activeSegment.seriesColor || color}
+                strokeWidth={1}
+              />
+              <text
+                x={tx}
+                y={ty - 2}
+                textAnchor="middle"
+                fill="#fff"
+                fontSize="11"
+                fontWeight="700"
+                fontFamily="monospace"
+              >
+                {text}
+              </text>
             </g>
           );
         })()}

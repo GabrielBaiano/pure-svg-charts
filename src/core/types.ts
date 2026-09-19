@@ -90,21 +90,36 @@ export interface SvgLineChartProps extends BaseChartProps {
   gradientStartOpacity?: number;
   /** Show series legend when multiple series are provided (default: true) */
   showLegend?: boolean;
+  /** Whether multi-series area fills are stacked cumulatively (default: false) */
+  stacked?: boolean;
   /** Maximum number of points to render via LTTB downsampling (default: 300, set 0 or Infinity to disable) */
   maxDisplayPoints?: number;
   /** Callback when a point is hovered */
   onPointHover?: (point: Point | null) => void;
 }
 
-export interface SvgBarChartProps extends BaseChartProps {
-  /** Array of numbers or { value, label } */
+export interface BarSeries {
+  id?: string;
+  name: string;
+  color?: string;
   data: DataValue[];
+}
+
+export interface SvgBarChartProps extends BaseChartProps {
+  /** Array of numbers or { value, label } (single series) */
+  data?: DataValue[];
+  /** Multiple series configuration for stacked or grouped bar charts */
+  series?: BarSeries[];
+  /** Whether multi-series bars are stacked vertically (default: true when series is present) */
+  stacked?: boolean;
+  /** Show series legend when multiple series are provided (default: true) */
+  showLegend?: boolean;
   /** Corner radius for rounded bars (default: 6) */
   radius?: number;
   /** Spacing ratio between bars [0..1] (default: 0.3) */
   barGap?: number;
   /** Callback when a bar is hovered */
-  onBarHover?: (item: { value: number; index: number; label?: string } | null) => void;
+  onBarHover?: (item: { value: number; index: number; label?: string; seriesName?: string } | null) => void;
 }
 
 export interface DonutSlice {

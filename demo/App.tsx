@@ -538,6 +538,92 @@ function ChartDemo() {
   );
 }
 
+// Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`,
+
+  stackedbars: `/**
+ * STACKED REVENUE STREAMS (QUARTERLY BREAKDOWN):
+ * Multi-series stacked bar chart decomposing revenue across three distinct channels.
+ * Demonstrates cumulative stacking math, per-segment hover metrics with percentage share,
+ * and seamless toggle to grouped side-by-side bar mode.
+ * 
+ * ABOUT PURE-SVG-CHARTS:
+ * F@%# 200kB D3 bloat and canvas overhead!
+ * High-precision financial bar stacking rendered natively in pure SVG with zero external dependencies.
+ */
+function ChartDemo() {
+  const [stacked, setStacked] = useState(true);
+
+  const series = [
+    {
+      name: 'Subscriptions',
+      color: '#7aa2f7',
+      data: [
+        { label: 'Q1', value: 48 },
+        { label: 'Q2', value: 62 },
+        { label: 'Q3', value: 78 },
+        { label: 'Q4', value: 95 }
+      ]
+    },
+    {
+      name: 'Enterprise',
+      color: '#f7768e',
+      data: [
+        { label: 'Q1', value: 24 },
+        { label: 'Q2', value: 38 },
+        { label: 'Q3', value: 45 },
+        { label: 'Q4', value: 58 }
+      ]
+    },
+    {
+      name: 'Services',
+      color: '#9ece6a',
+      data: [
+        { label: 'Q1', value: 16 },
+        { label: 'Q2', value: 20 },
+        { label: 'Q3', value: 26 },
+        { label: 'Q4', value: 32 }
+      ]
+    }
+  ];
+
+  return (
+    <div style={{ width: '100%', maxWidth: '850px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Mode Switcher */}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: '#7aa2f7', textTransform: 'uppercase' }}>
+          Bar Mode:
+        </span>
+        <button
+          className={"btn " + (stacked ? "active" : "")}
+          onClick={() => setStacked(true)}
+        >
+          Stacked Bars
+        </button>
+        <button
+          className={"btn " + (!stacked ? "active" : "")}
+          onClick={() => setStacked(false)}
+        >
+          Grouped (Side-by-Side)
+        </button>
+      </div>
+
+      <SvgBarChart
+        variant="tokyonight"
+        series={series}
+        stacked={stacked}
+        title="2026 Fiscal Revenue Streams"
+        subtitle="Quarterly channel breakdown • Percentage share on hover"
+        metric="$419k Total"
+        barGap={0.35}
+        radius={6}
+        width={800}
+        height={340}
+        crosshair
+      />
+    </div>
+  );
+}
+
 render(<ChartDemo />);
 
 // Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`
@@ -572,7 +658,8 @@ const ADDABLE_PROPS: {
   { propName: 'smooth',           snippet: 'smooth',                 icon: '🌊',  name: 'smooth',                  desc: 'Cubic Bézier spline interpolation',       components: ['SvgLineChart'] },
   { propName: 'strokeWidth',      snippet: 'strokeWidth={4}',        icon: '📏',  name: 'strokeWidth={4}',         desc: 'Bolder 4px curve stroke',                 components: ['SvgLineChart'] },
   { propName: 'curvature',        snippet: 'curvature={0}',          icon: '📐',  name: 'curvature={0}',           desc: 'Straight lines (zero curvature)',         components: ['SvgLineChart'] },
-  { propName: 'showLegend',       snippet: 'showLegend={false}',     icon: '📋',  name: 'showLegend={false}',      desc: 'Hide multi-series legend',                components: ['SvgLineChart'] },
+  { propName: 'showLegend',       snippet: 'showLegend={false}',     icon: '📋',  name: 'showLegend={false}',      desc: 'Hide multi-series legend',                components: ['SvgLineChart', 'SvgBarChart'] },
+  { propName: 'stacked',          snippet: 'stacked={false}',        icon: '📊',  name: 'stacked={false}',         desc: 'Toggle stacked vs grouped mode',          components: ['SvgBarChart', 'SvgLineChart'] },
   { propName: 'maxDisplayPoints', snippet: 'maxDisplayPoints={150}', icon: '⚡',  name: 'maxDisplayPoints={150}',  desc: 'LTTB target display resolution',          components: ['SvgLineChart'] },
   // --- SvgBarChart only ---
   { propName: 'radius',           snippet: 'radius={10}',            icon: '🔲',  name: 'radius={10}',             desc: 'Rounded bar corner radius',               components: ['SvgBarChart'] },
@@ -735,6 +822,12 @@ export function App() {
             onClick={() => handleSelectScenario('quarterly')}
           >
             Bar Audit
+          </button>
+          <button
+            className={`preset-btn ${selectedScenario === 'stackedbars' ? 'active' : ''}`}
+            onClick={() => handleSelectScenario('stackedbars')}
+          >
+            Stacked Bars
           </button>
           <button
             className={`preset-btn ${selectedScenario === 'multiseries' ? 'active' : ''}`}
