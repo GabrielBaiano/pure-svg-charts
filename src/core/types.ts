@@ -7,6 +7,7 @@ export interface Point {
   y: number;
   value: number;
   label?: string;
+  originalValue?: number;
 }
 
 export interface ChartPadding {

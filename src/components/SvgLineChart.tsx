@@ -186,24 +186,23 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
 
       const { points } = scaleDataToPoints(effectiveData, width, height, pad, minVal, maxVal);
 
-      const enrichedPoints = points.map((pt, pIdx) => ({
-        ...pt,
-        originalValue: effectiveData[pIdx]?.origValue ?? pt.value
-      }));
+      for (let pIdx = 0; pIdx < points.length; pIdx++) {
+        points[pIdx].originalValue = effectiveData[pIdx]?.origValue ?? points[pIdx].value;
+      }
 
       let areaPath = '';
       if (s.fillGradient) {
         if (stacked && isMultiSeries && idx > 0) {
-          areaPath = generateStackedAreaPath(enrichedPoints, result[idx - 1].points, smooth, curvature);
+          areaPath = generateStackedAreaPath(points, result[idx - 1].points, smooth, curvature);
         } else {
-          areaPath = generateAreaPath(enrichedPoints, effectiveBaselineY, smooth, curvature);
+          areaPath = generateAreaPath(points, effectiveBaselineY, smooth, curvature);
         }
       }
 
       result.push({
         ...s,
-        points: enrichedPoints,
-        linePath: generateLinePath(enrichedPoints, smooth, curvature),
+        points,
+        linePath: generateLinePath(points, smooth, curvature),
         areaPath,
         gradId: `gr-${uid}-${idx}`
       });
