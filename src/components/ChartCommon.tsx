@@ -5,12 +5,21 @@ import { CHART_VARIANTS, ChartVariant } from '../core/variants';
 export const DEFAULT_PADDING: ChartPadding = { top: 24, right: 24, bottom: 34, left: 48 };
 export const DEFAULT_PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6'];
 
-export const toCleanData = (data: DataValue[] = []) =>
-  data.map((d) =>
-    typeof d === 'number'
-      ? { value: Number.isFinite(d) ? d : 0, label: undefined }
-      : { value: Number.isFinite(d.value) ? d.value : 0, label: d.label }
-  );
+export const toCleanData = (data: DataValue[] = []): { value: number; label?: string }[] => {
+  if (!data || data.length === 0) return [];
+  const len = data.length;
+  const result = new Array(len);
+  for (let i = 0; i < len; i++) {
+    const d = data[i];
+    if (typeof d === 'number') {
+      result[i] = { value: Number.isFinite(d) ? d : 0 };
+    } else {
+      const val = Number.isFinite(d.value) ? d.value : 0;
+      result[i] = d.label !== undefined ? { value: val, label: d.label } : { value: val };
+    }
+  }
+  return result;
+};
 
 export const fullSvgStyle: React.CSSProperties = {
   width: '100%',

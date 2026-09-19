@@ -109,21 +109,23 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     if (categoryCount === 0) return { minVal: 0, maxVal: 1, categoryPosTotals: [], categoryNegTotals: [] };
 
     if (isMultiSeries && stacked) {
-      const posTotals: number[] = [];
-      const negTotals: number[] = [];
+      const posTotals = new Array(categoryCount);
+      const negTotals = new Array(categoryCount);
+      let min = 0;
+      let max = 0;
       for (let catIdx = 0; catIdx < categoryCount; catIdx++) {
         let pos = 0;
         let neg = 0;
-        for (const s of normalizedSeries) {
-          const v = s.data[catIdx]?.value || 0;
+        for (let sIdx = 0; sIdx < normalizedSeries.length; sIdx++) {
+          const v = normalizedSeries[sIdx].data[catIdx]?.value || 0;
           if (v > 0) pos += v;
           else if (v < 0) neg += v;
         }
-        posTotals.push(pos);
-        negTotals.push(neg);
+        posTotals[catIdx] = pos;
+        negTotals[catIdx] = neg;
+        if (neg < min) min = neg;
+        if (pos > max) max = pos;
       }
-      let min = Math.min(0, ...negTotals);
-      let max = Math.max(0, ...posTotals);
       if (min === max) {
         min = min > 0 ? 0 : min - 1;
         max = max === 0 ? 1 : max + 1;

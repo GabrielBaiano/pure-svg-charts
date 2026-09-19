@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { generateAreaPath, generateLinePath, generateStackedAreaPath } from '../core/bezier';
 import { downsampleLTTB } from '../core/lttb';
 import { getSampledLabelIndices, scaleDataToPoints } from '../core/scale';
-import { Point, SvgLineChartProps } from '../core/types';
+import { DataValue, Point, SvgLineChartProps } from '../core/types';
 import {
   ChartEmpty,
   ChartGlowFilter,
@@ -110,16 +110,12 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
 
   const isMultiSeries = Boolean(series && series.length > 1);
 
-  // Prepare series data with cumulative stacking when stacked is true
+  // Prepare series data with cumulative stacking only when stacked is true
   const stackedSeriesData = useMemo(() => {
     if (!isMultiSeries || !stacked) {
       return normalizedSeries.map((s) => ({
         ...s,
-        dataWithOrig: s.data.map((d) => ({
-          value: typeof d === 'number' ? d : d.value,
-          label: typeof d === 'object' ? d.label : undefined,
-          origValue: typeof d === 'number' ? d : d.value
-        }))
+        dataWithOrig: s.data
       }));
     }
 
@@ -145,7 +141,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     let max = -Infinity;
     for (const s of stackedSeriesData) {
       for (const d of s.dataWithOrig) {
-        const v = d.value;
+        const v = typeof d === 'number' ? d : d.value;
         if (Number.isFinite(v)) {
           if (v < min) min = v;
           if (v > max) max = v;
@@ -181,28 +177,33 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
       const s = stackedSeriesData[idx];
       const effectiveData =
         maxDisplayPoints && maxDisplayPoints > 2 && s.dataWithOrig.length > maxDisplayPoints
-          ? downsampleLTTB(s.dataWithOrig, maxDisplayPoints)
+          ? downsampleLTTB(s.dataWithOrig as any, maxDisplayPoints)
           : s.dataWithOrig;
 
-      const { points } = scaleDataToPoints(effectiveData, width, height, pad, minVal, maxVal);
+      const { points } = scaleDataToPoints(effectiveData as DataValue[], width, height, pad, minVal, maxVal);
 
-      for (let pIdx = 0; pIdx < points.length; pIdx++) {
-        points[pIdx].originalValue = effectiveData[pIdx]?.origValue ?? points[pIdx].value;
+      // Only inject originalValue for stacked series to prevent V8 Hidden Class (Shape) thrashing
+      if (stacked && isMultiSeries) {
+        for (let pIdx = 0; pIdx < points.length; pIdx++) {
+          (points[pIdx] as any).originalValue = (effectiveData[pIdx] as any)?.origValue ?? points[pIdx].value;
+        }
       }
 
+      // Generate line path once and reuse it directly for area gradient paths
+      const linePath = generateLinePath(points, smooth, curvature);
       let areaPath = '';
       if (s.fillGradient) {
         if (stacked && isMultiSeries && idx > 0) {
-          areaPath = generateStackedAreaPath(points, result[idx - 1].points, smooth, curvature);
+          areaPath = generateStackedAreaPath(points, result[idx - 1].points, smooth, curvature, linePath);
         } else {
-          areaPath = generateAreaPath(points, effectiveBaselineY, smooth, curvature);
+          areaPath = generateAreaPath(points, effectiveBaselineY, smooth, curvature, linePath);
         }
       }
 
       result.push({
         ...s,
         points,
-        linePath: generateLinePath(points, smooth, curvature),
+        linePath,
         areaPath,
         gradId: `gr-${uid}-${idx}`
       });
@@ -218,7 +219,11 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
   const visibleLabels = useMemo(() => {
     const ref = renderedSeries.find((s) => s.points.some((p) => p.label)) || renderedSeries[0];
     if (!ref || !ref.points.length) return [];
-    const labeled = ref.points.map((p) => ({ label: p.label, x: p.x })).filter((p) => p.label);
+    const labeled: { label?: string; x: number }[] = [];
+    for (let i = 0; i < ref.points.length; i++) {
+      const p = ref.points[i];
+      if (p.label) labeled.push(p);
+    }
     if (!labeled.length) return [];
     const maxL = Math.min(8, Math.max(2, Math.floor(chartWidth / 55)));
     const sampled = getSampledLabelIndices(labeled.length, maxL);

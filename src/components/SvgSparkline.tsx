@@ -23,7 +23,7 @@ export const SvgSparkline: React.FC<SvgSparklineProps> = ({
   if (!points.length) return null;
 
   const linePath = generateLinePath(points, smooth, 0.25);
-  const areaPath = fillArea ? generateAreaPath(points, height - 3, smooth, 0.25) : '';
+  const areaPath = fillArea ? generateAreaPath(points, height - 3, smooth, 0.25, linePath) : '';
   const last = points[points.length - 1];
 
   return (

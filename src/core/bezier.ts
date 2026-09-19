@@ -49,17 +49,19 @@ export function generateLinePath(points: Point[], smooth = true, curvature = 0.2
 
 /**
  * Closes the line path to the bottom baseline to create an area fill.
+ * Accepts an optional precomputed existingLinePath to avoid duplicate Bézier calculations.
  */
 export function generateAreaPath(
   points: Point[],
   baselineY: number,
   smooth = true,
-  curvature = 0.25
+  curvature = 0.25,
+  existingLinePath?: string
 ): string {
   const len = points.length;
   if (len === 0) return '';
 
-  const linePath = generateLinePath(points, smooth, curvature);
+  const linePath = existingLinePath ?? generateLinePath(points, smooth, curvature);
   const firstPt = points[0];
   const lastPt = points[len - 1];
   const base = r1(baselineY);
@@ -71,18 +73,20 @@ export function generateAreaPath(
 /**
  * Closes the polygon between two curves to create a stacked area segment.
  * Optimized with reverse-index traversal without array clones.
+ * Accepts an optional precomputed existingTopLinePath to avoid duplicate Bézier calculations.
  */
 export function generateStackedAreaPath(
   topPoints: Point[],
   bottomPoints: Point[],
   smooth = true,
-  curvature = 0.25
+  curvature = 0.25,
+  existingTopLinePath?: string
 ): string {
   const topLen = topPoints.length;
   const btmLen = bottomPoints.length;
   if (topLen === 0) return '';
 
-  const topLine = generateLinePath(topPoints, smooth, curvature);
+  const topLine = existingTopLinePath ?? generateLinePath(topPoints, smooth, curvature);
   if (btmLen === 0) return `${topLine} Z`;
 
   // Read bottomPoints in reverse order without allocating/cloning intermediate arrays

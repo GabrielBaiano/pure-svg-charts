@@ -19,7 +19,20 @@ export function scaleDataToPoints(
   overrideMin?: number,
   overrideMax?: number
 ): { points: Point[]; minVal: number; maxVal: number; padding: ChartPadding } {
-  const padding: ChartPadding = { ...DEFAULT_PADDING, ...customPadding };
+  const padLeft = customPadding?.left ?? DEFAULT_PADDING.left;
+  const padRight = customPadding?.right ?? DEFAULT_PADDING.right;
+  const padTop = customPadding?.top ?? DEFAULT_PADDING.top;
+  const padBottom = customPadding?.bottom ?? DEFAULT_PADDING.bottom;
+
+  const padding: ChartPadding =
+    customPadding &&
+    customPadding.top !== undefined &&
+    customPadding.right !== undefined &&
+    customPadding.bottom !== undefined &&
+    customPadding.left !== undefined
+      ? (customPadding as ChartPadding)
+      : { top: padTop, right: padRight, bottom: padBottom, left: padLeft };
+
   const count = data ? data.length : 0;
   if (count === 0) {
     return { points: [], minVal: overrideMin ?? 0, maxVal: overrideMax ?? 0, padding };
@@ -44,8 +57,8 @@ export function scaleDataToPoints(
     maxVal = maxVal === 0 ? 1 : maxVal + 1;
   }
 
-  const chartWidth = Math.max(1, width - padding.left - padding.right);
-  const chartHeight = Math.max(1, height - padding.top - padding.bottom);
+  const chartWidth = Math.max(1, width - padLeft - padRight);
+  const chartHeight = Math.max(1, height - padTop - padBottom);
   const valueRange = maxVal - minVal || 1;
   const stepX = count > 1 ? chartWidth / (count - 1) : chartWidth / 2;
 
@@ -57,15 +70,12 @@ export function scaleDataToPoints(
     const val = isNum ? (Number.isFinite(item) ? item : 0) : (Number.isFinite(item.value) ? item.value : 0);
     const label = isNum ? undefined : item.label;
 
-    const rawX = count === 1 ? padding.left + chartWidth / 2 : padding.left + i * stepX;
-    const rawY = padding.top + chartHeight - ((val - minVal) / valueRange) * chartHeight;
+    const rawX = count === 1 ? padLeft + chartWidth / 2 : padLeft + i * stepX;
+    const rawY = padTop + chartHeight - ((val - minVal) / valueRange) * chartHeight;
+    const px = Math.round(rawX * 10) / 10;
+    const py = Math.round(rawY * 10) / 10;
 
-    points[i] = {
-      x: Math.round(rawX * 10) / 10,
-      y: Math.round(rawY * 10) / 10,
-      value: val,
-      label
-    };
+    points[i] = label !== undefined ? { x: px, y: py, value: val, label } : { x: px, y: py, value: val };
   }
 
   return { points, minVal, maxVal, padding };
