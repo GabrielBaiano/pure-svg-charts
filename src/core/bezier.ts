@@ -8,7 +8,7 @@ export function generateLinePath(points: Point[], smooth = true, curvature = 0.2
   if (points.length === 0) return '';
   if (points.length === 1) return `M ${points[0].x},${points[0].y}`;
 
-  if (!smooth || points.length === 2) {
+  if (!smooth || curvature === 0 || points.length === 2) {
     return points.reduce((acc, pt, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${pt.x},${pt.y}`, '');
   }
 

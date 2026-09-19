@@ -551,7 +551,7 @@ const ADDABLE_PROPS: {
   { propName: 'fillGradient',     snippet: 'fillGradient',           icon: '💧',  name: 'fillGradient',            desc: 'Gradient area fill under the line',       components: ['SvgLineChart'] },
   { propName: 'smooth',           snippet: 'smooth',                 icon: '🌊',  name: 'smooth',                  desc: 'Cubic Bézier spline interpolation',       components: ['SvgLineChart'] },
   { propName: 'strokeWidth',      snippet: 'strokeWidth={4}',        icon: '📏',  name: 'strokeWidth={4}',         desc: 'Bolder 4px curve stroke',                 components: ['SvgLineChart'] },
-  { propName: 'curvature',        snippet: 'curvature={0.35}',       icon: '📐',  name: 'curvature={0.35}',        desc: 'Higher spline tension',                   components: ['SvgLineChart'] },
+  { propName: 'curvature',        snippet: 'curvature={0}',          icon: '📐',  name: 'curvature={0}',           desc: 'Straight lines (zero curvature)',         components: ['SvgLineChart'] },
   { propName: 'showLegend',       snippet: 'showLegend={false}',     icon: '📋',  name: 'showLegend={false}',      desc: 'Hide multi-series legend',                components: ['SvgLineChart'] },
   // --- SvgBarChart only ---
   { propName: 'radius',           snippet: 'radius={10}',            icon: '🔲',  name: 'radius={10}',             desc: 'Rounded bar corner radius',               components: ['SvgBarChart'] },

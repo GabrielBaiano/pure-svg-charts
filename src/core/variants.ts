@@ -29,7 +29,7 @@ const vData: Record<ChartVariant, [string, string, string, string, string, any?]
 
 export const CHART_VARIANTS: Record<ChartVariant, VariantConfig> = Object.fromEntries(
   Object.entries(vData).map(([k, [c, bg, b, sh, txt, ex = {}]]) => {
-    const { glow = false, smooth = true, strokeWidth = 3, strokeDasharray, fillGradient = true, gradientStartOpacity = 0.25, ...css } = ex;
+    const { glow = false, smooth = true, strokeWidth = 3, strokeDasharray, fillGradient = false, gradientStartOpacity = 0.25, ...css } = ex;
     return [
       k,
       {
