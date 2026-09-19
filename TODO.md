@@ -1,35 +1,35 @@
 # 📋 Roadmap & TO-DO — pure-svg-charts
 
-Este documento consolida os pontos de melhoria, novas funcionalidades e requisitos técnicos necessários para eliminar qualquer barreira de adoção corporativa do **`pure-svg-charts`**, transformando-a na biblioteca definitiva de gráficos do ecossistema React.
+This document outlines the strategic improvement roadmap, upcoming features, and production milestones required to eliminate adoption barriers for **`pure-svg-charts`**, positioning it as the default lightweight charting library for the modern React ecosystem.
 
 ---
 
-## 🎯 Visão Geral do Roadmap
+## 🎯 Roadmap Overview
 
 ```
-[ P1: Mobile & Touch ] ──> [ P2: Custom Tooltips ] ──> [ P3: Novos Gráficos ] ──> [ P4: Time-Series & a11y ]
+[ P1: Mobile & Touch ] ──> [ P2: Custom Tooltips ] ──> [ P3: New Chart Types ] ──> [ P4: Time-Series & a11y ]
 ```
 
 ---
 
-## 🚨 Prioridade 1 (P1): Interatividade Mobile & Gestos Touch *(Maior Deal-Breaker Atual)*
+## 🚨 Priority 1 (P1): Mobile Interactivity & Touch Gestures *(Top Deal-Breaker)*
 
-- [ ] **Suporte Nativo a Eventos Touch:**
-  - [ ] Implementar `onTouchStart`, `onTouchMove` e `onTouchEnd` em `<SvgLineChart>` e `<SvgBarChart>`.
-  - [ ] Calcular coordenadas relativas com precisão em telas de toque (`e.touches[0].clientX / clientY`).
-  - [ ] Configurar `touch-action: pan-y` no container SVG para permitir rolagem vertical natural da página enquanto o usuário arrasta o dedo horizontalmente sobre o gráfico.
-- [ ] **Comportamento de Pin / Trava de Tooltip:**
-  - [ ] Ao dar um toque único (*tap*), fixar o tooltip no ponto mais próximo.
-  - [ ] Ao tocar fora, fechar o tooltip suavemente.
-- [ ] **Otimização de Cursor em Telas de Alta Densidade (Retina/Mobile):**
-  - [ ] Garantir que o crosshair e a bolinha ativa tenham raio de toque ampliado (*hitbox*) para facilitar a seleção com o dedo.
+- [ ] **Native Touch Event Listeners:**
+  - [ ] Implement `onTouchStart`, `onTouchMove`, and `onTouchEnd` in `<SvgLineChart>` and `<SvgBarChart>`.
+  - [ ] Calculate precise relative touch coordinates (`e.touches[0].clientX / clientY`).
+  - [ ] Set `touch-action: pan-y` on the SVG container to preserve natural vertical page scrolling while the user scrubs horizontally across the chart.
+- [ ] **Tap-to-Pin Tooltip Behavior:**
+  - [ ] Lock the tooltip to the closest data point on single tap.
+  - [ ] Dismiss smoothly when tapping outside the chart canvas.
+- [ ] **High-Density Touch Hitbox:**
+  - [ ] Enlarge touch hitboxes for crosshair guidelines and active anchor points to facilitate effortless fingertip tracking on mobile and tablet screens.
 
 ---
 
-## 🎨 Prioridade 2 (P2): Tooltips Ricos & Customizáveis com Componentes React
+## 🎨 Priority 2 (P2): Rich & Fully Customizable Tooltips with React Components
 
-- [ ] **Prop `renderTooltip` (HTML / React Children):**
-  - [ ] Permitir que o desenvolvedor passe um componente React completo para renderizar dentro do tooltip:
+- [ ] **`renderTooltip` Prop (HTML / React Children):**
+  - [ ] Allow developers to pass an arbitrary React component for custom tooltip rendering:
     ```tsx
     <SvgLineChart
       data={data}
@@ -41,79 +41,79 @@ Este documento consolida os pontos de melhoria, novas funcionalidades e requisit
       )}
     />
     ```
-- [ ] **Renderização com React Portal ou Posicionamento Absoluto:**
-  - [ ] Ancorar o tooltip fora do SVG (usando `HTML overlay` ou `createPortal`) para que ele não fique cortado pelas bordas (*overflow: hidden*) do SVG.
-- [ ] **Fallback Automático:**
-  - [ ] Manter o tooltip SVG nativo (`<rect>` + `<text>`) como padrão ultra-leve quando o desenvolvedor não passar um componente customizado.
+- [ ] **HTML Overlay / React Portal Rendering:**
+  - [ ] Anchor the tooltip outside the SVG clipping boundary (using an HTML overlay or `createPortal`) to prevent it from being cropped by `overflow: hidden`.
+- [ ] **Zero-Overhead Fallback:**
+  - [ ] Preserve the native SVG tooltip (`<rect>` + `<text>`) as the default lightweight fallback when no custom component is supplied.
 
 ---
 
-## 📊 Prioridade 3 (P3): Novos Tipos de Gráficos Críticos para Dashboards
+## 📊 Priority 3 (P3): Essential Enterprise Chart Types
 
-- [ ] **Combo Chart / Dual-Axis (Gráfico Misto com Eixo Duplo Y):**
-  - [ ] Suporte a misturar **Barras** (ex: Volume / Faturamento) com **Linha** (ex: Margem % / Conversão) no mesmo gráfico.
-  - [ ] Eixo Y esquerdo (numérico absoluto) e eixo Y direito (percentual ou escala secundária).
-- [ ] **Gráfico de Barras Horizontais (`SvgHorizontalBarChart`):**
-  - [ ] Layout ideal para rankings corporativos (Top 10 Clientes, Países, Produtos).
-  - [ ] Suporte a rótulos de texto longos no eixo vertical esquerdo sem sobreposição.
-  - [ ] Suporte a valores negativos divergindo para a esquerda.
-- [ ] **Gráfico de Dispersão Contínuo (`SvgScatterPlot`):**
-  - [ ] Plotagem de pares numéricos contínuos $(X, Y)$ independentes de categorias.
-  - [ ] Suporte a tamanhos variáveis de ponto (Bubble Chart) e cores por cluster.
-- [ ] **Área com Intervalo / Faixa de Confiança (Min-Max Band Area):**
-  - [ ] Renderizar banda de incerteza (sombra entre valor mínimo e máximo previsto) muito usada em previsões financeiras e de telemetria.
-
----
-
-## ⏰ Prioridade 4 (P4): Escala Temporal com Datas Reais (Time-Series)
-
-- [ ] **Suporte a Timestamps e Objetos `Date` no Eixo X:**
-  - [ ] Aceitar `Date`, timestamp Unix (ms) ou strings ISO no `label`/`timestamp`.
-  - [ ] Calcular a posição `x` proporcionalmente ao tempo transcorrido, e não apenas pelo índice sequencial.
-- [ ] **Tratamento Inteligente de Gaps Temporais:**
-  - [ ] Respeitar buracos de dados (fins de semana no mercado financeiro ou quedas de sensor IoT) sem distorcer o eixo X.
-- [ ] **Formatadores Automáticos de Data:**
-  - [ ] Presets para formatação automática conforme o zoom/intervalo: `'auto'` | `'day'` | `'month'` | `'year'` | `'hour'`.
+- [ ] **Combo / Dual-Axis Chart:**
+  - [ ] Support simultaneous **Bars** (e.g. Volume/Revenue) and **Line** (e.g. Profit Margin % / Conversion) within the same chart canvas.
+  - [ ] Primary left Y-axis (absolute numbers) and secondary right Y-axis (percentages or distinct units).
+- [ ] **Horizontal Bar Chart (`SvgHorizontalBarChart`):**
+  - [ ] Ideal for dashboard rankings (Top 10 Products, Countries, Customers).
+  - [ ] Clean layout for long category text labels on the vertical Y-axis without truncation.
+  - [ ] Support for negative values extending leftward from the zero baseline.
+- [ ] **Continuous Scatter Plot (`SvgScatterPlot`):**
+  - [ ] Plotting of continuous $(X, Y)$ numerical pairs independent of categorical slots.
+  - [ ] Support for variable bubble radius and cluster color mapping.
+- [ ] **Confidence Interval / Min-Max Band Area Chart:**
+  - [ ] Render uncertainty bands (shaded area between minimum and maximum bounds) commonly required in financial modeling and telemetry forecasting.
 
 ---
 
-## ♿ Prioridade 5 (P5): Acessibilidade Completa (a11y / WCAG 2.1 & ADA)
+## ⏰ Priority 4 (P4): Time-Series & Continuous Date Scales
 
-- [ ] **Semântica SVG Acessível:**
-  - [ ] Adicionar `role="img"` ao elemento `<svg>`.
-  - [ ] Injetar tags `<title>` e `<desc>` descritivas no cabeçalho do SVG para leitores de tela.
-- [ ] **Navegação por Teclado:**
-  - [ ] Adicionar `tabIndex={0}` no gráfico para torná-lo focável.
-  - [ ] Permitir percorrer os pontos usando as setas do teclado ($\leftarrow$ e $\rightarrow$).
-  - [ ] Disparar tooltips e anúncios para leitores de tela (`aria-live="polite"`) ao focar em cada ponto.
-- [ ] **Modo de Alto Contraste:**
-  - [ ] Garantir conformidade com contraste de cores WCAG AA (mínimo de 4.5:1 entre eixos, fundo e linhas).
+- [ ] **Native Date & Timestamp Support on X-Axis:**
+  - [ ] Accept `Date` objects, Unix epoch numbers (ms), and ISO date strings.
+  - [ ] Calculate the horizontal coordinate proportionally to elapsed time rather than categorical index strides.
+- [ ] **Irregular Interval Handling:**
+  - [ ] Gracefully handle market gaps (weekends, holidays) and intermittent sensor data without distorting the visual timescale.
+- [ ] **Intelligent Date Formatters:**
+  - [ ] Automated resolution presets matching scale density: `'auto'` | `'day'` | `'month'` | `'year'` | `'hour'`.
 
 ---
 
-## 🛠️ Prioridade 6 (P6): Infraestrutura, Tree-Shaking e Confiabilidade
+## ♿ Priority 5 (P5): Enterprise Accessibility (a11y / WCAG 2.1 & ADA Compliance)
 
-- [ ] **Tree-Shaking Perfeito (`"sideEffects": false`):**
-  - [ ] Declarar `"sideEffects": false` no `package.json` raiz para que usuários que importem apenas `<SvgLineChart />` tenham um bundle final de apenas ~4 kB.
-- [ ] **Suíte de Testes Automatizados (Vitest):**
-  - [ ] Configurar Vitest + React Testing Library.
-  - [ ] Testes unitários para o algoritmo LTTB (`lttb.test.ts`).
-  - [ ] Testes unitários para curvas Bézier (`bezier.test.ts`).
-  - [ ] Testes de renderização síncrona dos componentes de gráfico.
-- [ ] **Integração Contínua (GitHub Actions):**
-  - [ ] Criar workflow `.github/workflows/ci.yml` para rodar `npm run build` e `npm test` automaticamente em cada Pull Request.
-- [ ] **Utilitário de Exportação de Imagem:**
-  - [ ] Função utilitária `exportChartAsImage(svgRef, 'png' | 'svg', filename)` para permitir que o usuário adicione facilmente um botão "Baixar Gráfico" em sua aplicação.
+- [ ] **Accessible SVG Semantics:**
+  - [ ] Include `role="img"` on root `<svg>`.
+  - [ ] Dynamically inject `<title>` and `<desc>` elements for screen readers.
+- [ ] **Full Keyboard Navigation:**
+  - [ ] Support `tabIndex={0}` to allow keyboard focus on chart elements.
+  - [ ] Enable navigating data points using $\leftarrow$ and $\rightarrow$ arrow keys.
+  - [ ] Trigger tooltips and announce active point metrics via `aria-live="polite"`.
+- [ ] **High-Contrast Conformance:**
+  - [ ] Guarantee WCAG AA color contrast ratios (minimum 4.5:1 between axes, background, and series lines).
 
 ---
 
-## 📈 Status de Conclusão
+## 🛠️ Priority 6 (P6): Infrastructure, Tree-Shaking & Production Reliability
 
-| Prioridade | Área | Status |
+- [ ] **Surgical Tree-Shaking (`"sideEffects": false`):**
+  - [ ] Declare `"sideEffects": false` in root `package.json` so importing only `<SvgLineChart />` yields a standalone bundle of only ~4 kB.
+- [ ] **Automated Test Suite (Vitest):**
+  - [ ] Setup Vitest + React Testing Library.
+  - [ ] Unit tests for LTTB downsampling accuracy (`lttb.test.ts`).
+  - [ ] Unit tests for Bézier curve mathematics (`bezier.test.ts`).
+  - [ ] Synchronous SSR render assertion tests.
+- [ ] **Continuous Integration (GitHub Actions):**
+  - [ ] Add `.github/workflows/ci.yml` verifying TypeScript compilation, linting, and automated tests on every Pull Request.
+- [ ] **Image Export Utility:**
+  - [ ] Helper utility `exportChartAsImage(svgRef, 'png' | 'svg', filename)` enabling users to easily build "Download Chart" buttons.
+
+---
+
+## 📈 Execution Status
+
+| Priority | Feature Area | Status |
 | :--- | :--- | :--- |
-| **P1** | Mobile & Touch Events | ⏳ Planejado |
-| **P2** | Custom Tooltip (React Portal / HTML) | ⏳ Planejado |
-| **P3** | Combo Chart, Horizontal Bars & Scatter | ⏳ Planejado |
-| **P4** | Escala Temporal Contínua | ⏳ Planejado |
-| **P5** | Acessibilidade (a11y / WCAG) | ⏳ Planejado |
-| **P6** | Tree-Shaking, Vitest & CI | ⏳ Planejado |
+| **P1** | Mobile & Touch Events | ⏳ Planned |
+| **P2** | Custom Tooltip (React Portal / HTML) | ⏳ Planned |
+| **P3** | Combo Chart, Horizontal Bars & Scatter | ⏳ Planned |
+| **P4** | Continuous Time-Series Scales | ⏳ Planned |
+| **P5** | Accessibility (a11y / WCAG) | ⏳ Planned |
+| **P6** | Tree-Shaking, Vitest & CI | ⏳ Planned |
