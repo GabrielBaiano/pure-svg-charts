@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { tokyoNight } from '@uiw/codemirror-theme-tokyo-night';
 import { javascript } from '@codemirror/lang-javascript';
@@ -721,9 +721,11 @@ render(<ChartDemo />);
  * to automatically measure parent dimensions and scale SVG charts to fill
  * 100% of any layout, dashboard grid, or viewport size without distortion.
  * 
- * Resize your browser window or drag the split-pane to see it adapt in real time!
+ * Resize your browser window, drag the central split-bar, or use the slider below!
  */
 function ChartDemo() {
+  const [containerWidth, setContainerWidth] = useState('100%');
+
   const telemetry = [
     { label: '00h', value: 24 },
     { label: '04h', value: 38 },
@@ -740,36 +742,114 @@ function ChartDemo() {
     { label: 'AI', value: 70 }
   ];
 
+  const PRESET_SIZES = [
+    { label: '100% Full', val: '100%' },
+    { label: '700px Desktop', val: '700px' },
+    { label: '480px Tablet', val: '480px' },
+    { label: '340px Mobile', val: '340px' }
+  ];
+
+  const currentSliderValue = containerWidth.endsWith('px')
+    ? parseInt(containerWidth, 10)
+    : 800;
+
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div style={{ fontSize: '12px', color: '#7aa2f7', fontWeight: 600 }}>
-        Tip: Drag the editor divider or resize your browser window to see the charts adapt dynamically.
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', width: '100%' }}>
-        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <ResponsiveContainer width="100%" height={240}>
-            <SvgLineChart
-              variant="tokyonight"
-              data={telemetry}
-              smooth
-              fillGradient
-              title="Throughput Rate"
-              metric="95 req/s"
-            />
-          </ResponsiveContainer>
+      {/* Interactive Sizing Toolbar */}
+      <div style={{
+        background: '#1a1b26',
+        border: '1px solid #292e42',
+        borderRadius: '10px',
+        padding: '14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#7aa2f7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Interactive Size Controls:
+          </span>
+          <span style={{ fontSize: '12px', color: '#a9b1d6', fontFamily: 'monospace' }}>
+            Width: <strong style={{ color: '#7dcfff' }}>{containerWidth}</strong>
+          </span>
         </div>
 
-        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <ResponsiveContainer width="100%" height={240}>
-            <SvgBarChart
-              variant="tokyonight"
-              data={breakdown}
-              radius={6}
-              title="Node Allocation"
-              metric="184 nodes"
-            />
-          </ResponsiveContainer>
+        {/* Quick Device Presets */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {PRESET_SIZES.map((p) => (
+            <button
+              key={p.val}
+              onClick={() => setContainerWidth(p.val)}
+              style={{
+                fontSize: '11px',
+                padding: '5px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                background: containerWidth === p.val ? '#7aa2f7' : '#1f2335',
+                color: containerWidth === p.val ? '#15161e' : '#a9b1d6',
+                border: '1px solid ' + (containerWidth === p.val ? '#7aa2f7' : '#292e42'),
+                fontWeight: 600,
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Drag Slider to change width smoothly */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '11px', color: '#565f89', minWidth: '75px', fontWeight: 600 }}>Drag Width:</span>
+          <input
+            type="range"
+            min="300"
+            max="800"
+            value={currentSliderValue}
+            onChange={(e) => setContainerWidth(e.target.value + 'px')}
+            style={{ flex: 1, accentColor: '#7aa2f7', cursor: 'pointer' }}
+          />
+        </div>
+
+        <div style={{ fontSize: '11px', color: '#7982a9', lineHeight: '1.4' }}>
+          💡 <strong>Two ways to resize:</strong> Drag the central split-bar between Editor & Preview, or use the slider and buttons above to see <code>&lt;ResponsiveContainer&gt;</code> adapt instantly!
+        </div>
+      </div>
+
+      {/* Dynamic Simulated Frame */}
+      <div style={{
+        width: containerWidth,
+        maxWidth: '100%',
+        margin: '0 auto',
+        transition: 'width 0.15s ease',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', width: '100%' }}>
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <ResponsiveContainer width="100%" height={240}>
+              <SvgLineChart
+                variant="tokyonight"
+                data={telemetry}
+                smooth
+                fillGradient
+                title="Throughput Rate"
+                metric="95 req/s"
+              />
+            </ResponsiveContainer>
+          </div>
+
+          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <ResponsiveContainer width="100%" height={240}>
+              <SvgBarChart
+                variant="tokyonight"
+                data={breakdown}
+                radius={6}
+                title="Node Allocation"
+                metric="184 nodes"
+              />
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>
@@ -837,6 +917,41 @@ export function App() {
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [liveStats, setLiveStats] = useState<{ nodes: number; bytes: number } | null>(null);
+  const [splitPercent, setSplitPercent] = useState<number>(46);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const splitContainerRef = useRef<HTMLElement>(null);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!splitContainerRef.current) return;
+      const rect = splitContainerRef.current.getBoundingClientRect();
+      const newPercent = ((e.clientX - rect.left) / rect.width) * 100;
+      setSplitPercent(Math.min(80, Math.max(20, newPercent)));
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
 
   const handleSelectScenario = (key: keyof typeof PRESETS) => {
     setSelectedScenario(key);
@@ -1027,9 +1142,9 @@ export function App() {
       </div>
 
       {/* Split View Editor & Preview */}
-      <main className="split-view">
+      <main ref={splitContainerRef} className={`split-view ${isDragging ? 'is-resizing' : ''}`}>
         {/* Left Side: CodeMirror Editor with Tokyo Night */}
-        <section className="editor-pane">
+        <section className="editor-pane" style={{ width: `${splitPercent}%`, flex: 'none' }}>
           <div className="pane-header">
             <div className="tab-tag">
               <span>LiveEditor.tsx (Tokyo Night)</span>
@@ -1171,8 +1286,20 @@ export function App() {
           </div>
         </section>
 
+        {/* Draggable Divider Gutter */}
+        <div
+          className={`split-gutter ${isDragging ? 'dragging' : ''}`}
+          onMouseDown={handleMouseDown}
+          title="Drag to resize editor and preview"
+        >
+          <div className="gutter-handle" />
+        </div>
+
         {/* Right Side: Live Output with Pure SVG Chart */}
-        <section className="preview-pane">
+        <section
+          className="preview-pane"
+          style={{ width: `calc(${100 - splitPercent}% - 8px)`, flex: 'none' }}
+        >
           <div className="pane-header">
             <span style={{ fontSize: '13px', fontWeight: 700, color: '#c0caf5' }}>
               Live Output & Diagnostics

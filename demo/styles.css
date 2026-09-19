@@ -152,6 +152,54 @@ body {
   flex: 1;
   height: calc(100vh - 105px);
   overflow: hidden;
+  position: relative;
+}
+
+.split-view.is-resizing {
+  user-select: none !important;
+  cursor: col-resize !important;
+}
+
+.split-view.is-resizing * {
+  user-select: none !important;
+  pointer-events: none !important;
+}
+
+/* Draggable Divider Gutter */
+.split-gutter {
+  width: 8px;
+  background: #13141c;
+  border-left: 1px solid #24283b;
+  border-right: 1px solid #24283b;
+  cursor: col-resize;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+  user-select: none;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.split-gutter:hover,
+.split-gutter.dragging {
+  background: #24283b;
+}
+
+.gutter-handle {
+  width: 2px;
+  height: 36px;
+  background: #414868;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+}
+
+.split-gutter:hover .gutter-handle,
+.split-gutter.dragging .gutter-handle {
+  background: #7aa2f7;
+  height: 52px;
+  box-shadow: 0 0 10px rgba(122, 162, 247, 0.7);
 }
 
 @media (max-width: 900px) {
@@ -159,15 +207,23 @@ body {
     flex-direction: column;
     height: auto;
   }
+
+  .editor-pane,
+  .preview-pane {
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  .split-gutter {
+    display: none;
+  }
 }
 
 /* Left: Editor Pane */
 .editor-pane {
-  flex: 1;
   display: flex;
   flex-direction: column;
   background: #1a1b26;
-  border-right: 1px solid #24283b;
   min-width: 0;
   overflow: hidden;
 }

@@ -114,6 +114,7 @@ export const LiveRunner: React.FC<LiveRunnerProps> = ({ code, onStatsChange }) =
           useEffect: React.useEffect,
           useMemo: React.useMemo,
           useCallback: React.useCallback,
+          useRef: React.useRef,
           SvgLineChart,
           SvgBarChart,
           SvgDonutChart,
