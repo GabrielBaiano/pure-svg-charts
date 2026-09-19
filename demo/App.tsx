@@ -311,6 +311,215 @@ function ChartDemo() {
 
 render(<ChartDemo />);
 
+// Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`,
+
+  multiseries: `/**
+ * MULTI-SERIES LINE CHART:
+ * Multiple datasets rendered on the same canvas with a shared Y axis scale.
+ * Each series has its own color, legend entry, and independent fill gradient.
+ * Crosshair and tooltip identify the exact series being hovered.
+ *
+ * ABOUT PURE-SVG-CHARTS:
+ * F@%# 200kB D3 bloat and canvas overhead!
+ * Unified global min/max keeps all series proportionally aligned without external math libraries.
+ */
+function ChartDemo() {
+  // Three performance metrics tracked over the same 6-month window
+  const series = [
+    {
+      name: 'Revenue',
+      color: '#7aa2f7',
+      fillGradient: true,
+      data: [
+        { label: 'Jan', value: 42 },
+        { label: 'Feb', value: 68 },
+        { label: 'Mar', value: 55 },
+        { label: 'Apr', value: 91 },
+        { label: 'May', value: 78 },
+        { label: 'Jun', value: 114 }
+      ]
+    },
+    {
+      name: 'Expenses',
+      color: '#f7768e',
+      strokeDasharray: '5 4',
+      data: [
+        { label: 'Jan', value: 38 },
+        { label: 'Feb', value: 45 },
+        { label: 'Mar', value: 60 },
+        { label: 'Apr', value: 52 },
+        { label: 'May', value: 70 },
+        { label: 'Jun', value: 65 }
+      ]
+    },
+    {
+      name: 'Profit',
+      color: '#9ece6a',
+      data: [
+        { label: 'Jan', value: 4 },
+        { label: 'Feb', value: 23 },
+        { label: 'Mar', value: -5 },
+        { label: 'Apr', value: 39 },
+        { label: 'May', value: 8 },
+        { label: 'Jun', value: 49 }
+      ]
+    }
+  ];
+
+  return (
+    <div style={{ width: '100%', maxWidth: '720px', margin: '0 auto' }}>
+      {/* Multi-series chart with shared global scale and per-series legend */}
+      <SvgLineChart
+        variant="tokyonight"
+        series={series}
+        title="H1 2026 — Financial Overview"
+        subtitle="Revenue vs Expenses vs Profit (shared scale)"
+        metric="$114k Revenue"
+        crosshair
+        showLegend
+        height={340}
+        valueFormatter={(v) => (v >= 0 ? '+' : '') + v + 'k'}
+      />
+    </div>
+  );
+}
+
+render(<ChartDemo />);
+
+// Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`,
+
+  donut: `/**
+ * DONUT CHART — CATEGORY DISTRIBUTION:
+ * Pure SVG donut chart rendered with stroke-dasharray math on a single <circle> element.
+ * Hover any slice or legend row to isolate and inspect category breakdowns.
+ * Center text updates dynamically to reflect the active selection.
+ *
+ * ABOUT PURE-SVG-CHARTS:
+ * F@%# 200kB D3 bloat and canvas overhead!
+ * No canvas, no D3 arc generators — pure trigonometry converted to stroke offsets.
+ */
+function ChartDemo() {
+  // Q2 2026 marketing budget distribution across channels
+  const [data, setData] = useState([
+    { label: 'Paid Search', value: 38, color: '#7aa2f7' },
+    { label: 'Social Ads',  value: 24, color: '#9ece6a' },
+    { label: 'Content SEO', value: 18, color: '#e0af68' },
+    { label: 'Email',       value: 12, color: '#bb9af7' },
+    { label: 'Referral',    value: 8,  color: '#f7768e' }
+  ]);
+
+  return (
+    <div style={{ width: '100%', maxWidth: '520px', margin: '0 auto' }}>
+      {/* Interactive donut with center total and hover isolation */}
+      <SvgDonutChart
+        variant="tokyonight"
+        data={data}
+        title="Marketing Budget — Q2 2026"
+        subtitle="Channel distribution by percentage share"
+        metric="$240k Total"
+        size={240}
+        innerRadiusRatio={0.68}
+        showLegend
+        animated
+        valueFormatter={(v) => v + '%'}
+        centerLabel="Budget"
+      />
+    </div>
+  );
+}
+
+render(<ChartDemo />);
+
+// Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`,
+
+  kpi: `/**
+ * KPI DASHBOARD WITH SPARKLINES:
+ * Compact KPI cards pairing a metric headline with an inline SvgSparkline trend indicator.
+ * Each sparkline renders as a standalone inline SVG element with gradient fill and end-dot.
+ * Zero state complexity -- data is declared statically and passed directly to the component.
+ *
+ * ABOUT PURE-SVG-CHARTS:
+ * F@%# 200kB D3 bloat and canvas overhead!
+ * Sparklines are the smallest possible chart unit -- pure path + optional gradient in <120px.
+ */
+function ChartDemo() {
+  // KPI metrics with historical trend data for sparkline rendering
+  const kpis = [
+    {
+      label: 'Daily Active Users',
+      value: '24,850',
+      change: '+12.4%',
+      positive: true,
+      color: '#7aa2f7',
+      trend: [18200, 19400, 18800, 21000, 20400, 22900, 24850]
+    },
+    {
+      label: 'Conversion Rate',
+      value: '3.82%',
+      change: '+0.6pp',
+      positive: true,
+      color: '#9ece6a',
+      trend: [2.9, 3.1, 3.0, 3.4, 3.3, 3.6, 3.82]
+    },
+    {
+      label: 'Avg Session (s)',
+      value: '142s',
+      change: '-8s',
+      positive: false,
+      color: '#f7768e',
+      trend: [165, 158, 160, 152, 148, 150, 142]
+    },
+    {
+      label: 'Bounce Rate',
+      value: '34.1%',
+      change: '-2.3pp',
+      positive: true,
+      color: '#e0af68',
+      trend: [42, 40, 39, 37, 36, 35, 34.1]
+    }
+  ];
+
+  const card = {
+    background: '#1a1b26',
+    border: '1px solid #2f3549',
+    borderRadius: '12px',
+    padding: '16px 20px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '16px',
+    color: '#c0caf5'
+  };
+
+  return (
+    <div style={{ width: '100%', maxWidth: '720px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {kpis.map((kpi) => (
+        <div key={kpi.label} style={card}>
+          <div>
+            <div style={{ fontSize: '12px', opacity: 0.6, marginBottom: '4px' }}>{kpi.label}</div>
+            <div style={{ fontSize: '22px', fontWeight: 800 }}>{kpi.value}</div>
+            <div style={{ fontSize: '12px', marginTop: '2px', color: kpi.positive ? '#9ece6a' : '#f7768e', fontWeight: 700 }}>
+              {kpi.change}
+            </div>
+          </div>
+          {/* Compact inline sparkline — 140x40px standalone SVG */}
+          <SvgSparkline
+            data={kpi.trend}
+            width={140}
+            height={40}
+            color={kpi.color}
+            strokeWidth={2}
+            fillArea
+            showEndDot
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+render(<ChartDemo />);
+
 // Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`
 };
 
@@ -462,6 +671,24 @@ export function App() {
             onClick={() => handleSelectScenario('quarterly')}
           >
             Bar Audit
+          </button>
+          <button
+            className={`preset-btn ${selectedScenario === 'multiseries' ? 'active' : ''}`}
+            onClick={() => handleSelectScenario('multiseries')}
+          >
+            Multi-Series
+          </button>
+          <button
+            className={`preset-btn ${selectedScenario === 'donut' ? 'active' : ''}`}
+            onClick={() => handleSelectScenario('donut')}
+          >
+            Donut Chart
+          </button>
+          <button
+            className={`preset-btn ${selectedScenario === 'kpi' ? 'active' : ''}`}
+            onClick={() => handleSelectScenario('kpi')}
+          >
+            KPI Sparklines
           </button>
         </div>
 

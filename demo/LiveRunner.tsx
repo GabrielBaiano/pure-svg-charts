@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, Component as ReactClassComponent } 
 import * as Babel from '@babel/standalone';
 import { SvgLineChart } from '../src/components/SvgLineChart';
 import { SvgBarChart } from '../src/components/SvgBarChart';
+import { SvgDonutChart } from '../src/components/SvgDonutChart';
+import { SvgSparkline } from '../src/components/SvgSparkline';
 import { SvgCrosshair } from '../src/components/SvgCrosshair';
 import { CHART_VARIANTS } from '../src/core/variants';
 
@@ -112,6 +114,8 @@ export const LiveRunner: React.FC<LiveRunnerProps> = ({ code, onStatsChange }) =
           useCallback: React.useCallback,
           SvgLineChart,
           SvgBarChart,
+          SvgDonutChart,
+          SvgSparkline,
           SvgCrosshair,
           CHART_VARIANTS
         };
