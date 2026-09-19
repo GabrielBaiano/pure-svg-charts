@@ -51,6 +51,10 @@ export interface BaseChartProps {
   glow?: boolean;
   /** Show crosshair guidelines and axis value badges during hover (default: false) */
   crosshair?: boolean;
+  /** Accent color used for negative values (default: #f7768e) */
+  negativeColor?: string;
+  /** Show horizontal zero-axis line when data crosses zero (default: true) */
+  showZeroLine?: boolean;
   /** Custom CSS class names */
   className?: string;
   /** Inline styles for the outer container */
@@ -186,4 +190,27 @@ export interface SvgSparklineProps {
   className?: string;
   /** Container inline styles */
   style?: React.CSSProperties;
+}
+
+export interface ResponsiveContainerProps {
+  /** Width of the container (e.g. '100%' or pixel number, default: '100%') */
+  width?: number | string;
+  /** Height of the container (e.g. '100%', 300, default: '100%') */
+  height?: number | string;
+  /** Optional aspect ratio (width / height) */
+  aspect?: number;
+  /** Minimum container width in pixels */
+  minWidth?: number;
+  /** Minimum container height in pixels */
+  minHeight?: number;
+  /** Maximum container height in pixels */
+  maxHeight?: number;
+  /** ResizeObserver debounce time in milliseconds (default: 0) */
+  debounce?: number;
+  /** Custom CSS class names */
+  className?: string;
+  /** Custom inline styles */
+  style?: React.CSSProperties;
+  /** Child chart component or function returning child with measured dimensions */
+  children: React.ReactElement | ((dims: { width: number; height: number }) => React.ReactElement);
 }

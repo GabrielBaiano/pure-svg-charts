@@ -59,6 +59,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     width,
     height,
     chartWidth,
+    chartHeight,
     baselineY,
     valueFormatter,
     uid,
@@ -70,7 +71,8 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     showYAxis,
     glow,
     crosshair,
-    animated
+    animated,
+    showZeroLine
   } = base;
 
   const smooth = props.smooth ?? preset.smooth;
@@ -161,6 +163,17 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     return { minVal: min, maxVal: max };
   }, [stackedSeriesData, stacked, isMultiSeries]);
 
+  const valueRange = Math.max(0.0001, maxVal - minVal);
+  const zeroY =
+    minVal < 0 && maxVal > 0
+      ? pad.top + ((maxVal - 0) / valueRange) * chartHeight
+      : minVal >= 0
+      ? baselineY
+      : pad.top;
+
+  const effectiveBaselineY =
+    minVal < 0 && maxVal > 0 ? zeroY : maxVal <= 0 ? zeroY : baselineY;
+
   const renderedSeries = useMemo<RenderedLineSeries[]>(() => {
     const result: RenderedLineSeries[] = [];
 
@@ -183,7 +196,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
         if (stacked && isMultiSeries && idx > 0) {
           areaPath = generateStackedAreaPath(enrichedPoints, result[idx - 1].points, smooth, curvature);
         } else {
-          areaPath = generateAreaPath(enrichedPoints, baselineY, smooth, curvature);
+          areaPath = generateAreaPath(enrichedPoints, effectiveBaselineY, smooth, curvature);
         }
       }
 
@@ -197,7 +210,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     }
 
     return result;
-  }, [stackedSeriesData, width, height, pad, baselineY, minVal, maxVal, smooth, curvature, uid, maxDisplayPoints, stacked, isMultiSeries]);
+  }, [stackedSeriesData, width, height, pad, effectiveBaselineY, minVal, maxVal, smooth, curvature, uid, maxDisplayPoints, stacked, isMultiSeries]);
 
   const maxSeriesPoints = Math.max(0, ...renderedSeries.map((s) => s.points.length));
   const isHighDensity = maxSeriesPoints > 60;
@@ -332,6 +345,8 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           width={width}
           height={height}
           valueFormatter={valueFormatter}
+          showZeroLine={showZeroLine}
+          zeroY={zeroY}
         />
 
         {renderedSeries.map((s) =>
@@ -359,12 +374,12 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           <SvgCrosshair
             x={activePoint.x}
             y={activePoint.y}
-            baselineY={baselineY}
+            baselineY={zeroY}
             padLeft={pad.left}
             padRight={pad.right}
             width={width}
             color={activePoint.seriesColor || color}
-            valueStr={valueFormatter(activePoint.value)}
+            valueStr={valueFormatter(activePoint.originalValue !== undefined ? activePoint.originalValue : activePoint.value)}
             label={activePoint.label}
           />
         )}
@@ -388,7 +403,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
                   <g key={`${s.id}-${ptIdx}`}>
                     <text
                       x={pt.x}
-                      y={pt.y - (dotRadius + 6)}
+                      y={pt.value < 0 ? pt.y + dotRadius + 14 : pt.y - (dotRadius + 6)}
                       textAnchor="middle"
                       fill="currentColor"
                       fontSize="11"
@@ -433,7 +448,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
                 <text
                   key={`${s.id}-${ptIdx}`}
                   x={pt.x}
-                  y={pt.y - (dotRadius + 6)}
+                  y={pt.value < 0 ? pt.y + dotRadius + 14 : pt.y - (dotRadius + 6)}
                   textAnchor="middle"
                   fill="currentColor"
                   fontSize="11"

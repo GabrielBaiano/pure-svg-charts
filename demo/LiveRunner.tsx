@@ -5,6 +5,7 @@ import { SvgBarChart } from '../src/components/SvgBarChart';
 import { SvgDonutChart } from '../src/components/SvgDonutChart';
 import { SvgSparkline } from '../src/components/SvgSparkline';
 import { SvgCrosshair } from '../src/components/SvgCrosshair';
+import { ResponsiveContainer, useParentSize } from '../src/components/ResponsiveContainer';
 import { downsampleLTTB } from '../src/core/lttb';
 import { CHART_VARIANTS } from '../src/core/variants';
 
@@ -118,6 +119,8 @@ export const LiveRunner: React.FC<LiveRunnerProps> = ({ code, onStatsChange }) =
           SvgDonutChart,
           SvgSparkline,
           SvgCrosshair,
+          ResponsiveContainer,
+          useParentSize,
           downsampleLTTB,
           CHART_VARIANTS
         };

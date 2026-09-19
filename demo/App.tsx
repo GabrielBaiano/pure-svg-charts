@@ -633,6 +633,151 @@ function ChartDemo() {
 
 render(<ChartDemo />);
 
+// Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`,
+
+  negative: `/**
+ * PROFIT & LOSS (DIVERGING BARS & NEGATIVE VALUES):
+ * Demonstrates native handling of mixed positive and negative values.
+ * Positive bars extend UPWARDS from the zero-line with top rounded corners.
+ * Negative bars extend DOWNWARDS from the zero-line with bottom rounded corners.
+ * A prominent zero-axis line divides gains and losses cleanly.
+ */
+function ChartDemo() {
+  const [chartType, setChartType] = useState('bars');
+
+  const pnlData = [
+    { label: 'Jan', value: 48 },
+    { label: 'Feb', value: -26 },
+    { label: 'Mar', value: 65 },
+    { label: 'Apr', value: -18 },
+    { label: 'May', value: 84 },
+    { label: 'Jun', value: -42 },
+    { label: 'Jul', value: 95 }
+  ];
+
+  return (
+    <div style={{ width: '100%', maxWidth: '850px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Type Switcher */}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: '#7aa2f7', textTransform: 'uppercase' }}>
+          Chart Type:
+        </span>
+        <button
+          className={"btn " + (chartType === "bars" ? "active" : "")}
+          onClick={() => setChartType("bars")}
+        >
+          Diverging Bars
+        </button>
+        <button
+          className={"btn " + (chartType === "line" ? "active" : "")}
+          onClick={() => setChartType("line")}
+        >
+          Line through Zero
+        </button>
+      </div>
+
+      {chartType === 'bars' ? (
+        <SvgBarChart
+          variant="tokyonight"
+          data={pnlData}
+          negativeColor="#f7768e"
+          title="2026 Monthly Net Operating Income"
+          subtitle="Gains vs. Losses relative to Zero-Baseline"
+          metric="+$206k YTD"
+          showValues
+          showZeroLine
+          radius={6}
+          barGap={0.35}
+          width={800}
+          height={340}
+          crosshair
+        />
+      ) : (
+        <SvgLineChart
+          variant="tokyonight"
+          data={pnlData}
+          smooth
+          fillGradient
+          showZeroLine
+          title="2026 Monthly Cashflow Trajectory"
+          subtitle="Net cash generation crossing zero axis"
+          metric="+$206k YTD"
+          width={800}
+          height={340}
+          crosshair
+        />
+      )}
+    </div>
+  );
+}
+
+render(<ChartDemo />);
+
+// Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`,
+
+  responsive: `/**
+ * RESPONSIVE CONTAINER & AUTO-SIZING:
+ * Uses the browser's native ResizeObserver (zero external dependencies)
+ * to automatically measure parent dimensions and scale SVG charts to fill
+ * 100% of any layout, dashboard grid, or viewport size without distortion.
+ * 
+ * Resize your browser window or drag the split-pane to see it adapt in real time!
+ */
+function ChartDemo() {
+  const telemetry = [
+    { label: '00h', value: 24 },
+    { label: '04h', value: 38 },
+    { label: '08h', value: 65 },
+    { label: '12h', value: 89 },
+    { label: '16h', value: 72 },
+    { label: '20h', value: 95 }
+  ];
+
+  const breakdown = [
+    { label: 'Core', value: 52 },
+    { label: 'Cloud', value: 38 },
+    { label: 'Edge', value: 24 },
+    { label: 'AI', value: 70 }
+  ];
+
+  return (
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ fontSize: '12px', color: '#7aa2f7', fontWeight: 600 }}>
+        Tip: Drag the editor divider or resize your browser window to see the charts adapt dynamically.
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', width: '100%' }}>
+        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <ResponsiveContainer width="100%" height={240}>
+            <SvgLineChart
+              variant="tokyonight"
+              data={telemetry}
+              smooth
+              fillGradient
+              title="Throughput Rate"
+              metric="95 req/s"
+            />
+          </ResponsiveContainer>
+        </div>
+
+        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <ResponsiveContainer width="100%" height={240}>
+            <SvgBarChart
+              variant="tokyonight"
+              data={breakdown}
+              radius={6}
+              title="Node Allocation"
+              metric="184 nodes"
+            />
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+render(<ChartDemo />);
+
 // Special thanks to @uiw/react-codemirror for powering this live in-browser editor playground.`
 };
 
@@ -657,6 +802,8 @@ const ADDABLE_PROPS: {
   { propName: 'glow',             snippet: 'glow',                   icon: '⚡',  name: 'glow',                   desc: 'GPU drop shadow neon effect',             components: ['SvgLineChart', 'SvgBarChart'] },
   { propName: 'crosshair',        snippet: 'crosshair',              icon: '🎯',  name: 'crosshair',               desc: 'Position guidelines & axis badges',       components: ['SvgLineChart', 'SvgBarChart'] },
   { propName: 'showValues',       snippet: 'showValues',             icon: '🏷️',  name: 'showValues',              desc: 'Permanent value badges above points',     components: ['SvgLineChart', 'SvgBarChart'] },
+  { propName: 'negativeColor',    snippet: 'negativeColor="#f7768e"', icon: '🔴', name: 'negativeColor="#f7768e"', desc: 'Color for negative values below zero',    components: ['SvgBarChart', 'SvgLineChart'] },
+  { propName: 'showZeroLine',     snippet: 'showZeroLine={true}',    icon: '➖',  name: 'showZeroLine',            desc: 'Prominent zero axis dividing line',       components: ['SvgBarChart', 'SvgLineChart'] },
   // --- SvgLineChart only ---
   { propName: 'dotRadius',        snippet: 'dotRadius={2.5}',        icon: '🔍',  name: 'dotRadius={2.5}',         desc: 'Small 2.5px point circles',               components: ['SvgLineChart'] },
   { propName: 'strokeDasharray',  snippet: 'strokeDasharray="4 4"',  icon: '〰️', name: 'strokeDasharray="4 4"',   desc: 'Dashed curve style',                      components: ['SvgLineChart'] },
@@ -836,6 +983,18 @@ export function App() {
             onClick={() => handleSelectScenario('stackedbars')}
           >
             Stacked Bars
+          </button>
+          <button
+            className={`preset-btn ${selectedScenario === 'negative' ? 'active' : ''}`}
+            onClick={() => handleSelectScenario('negative')}
+          >
+            Profit & Loss (Negative)
+          </button>
+          <button
+            className={`preset-btn ${selectedScenario === 'responsive' ? 'active' : ''}`}
+            onClick={() => handleSelectScenario('responsive')}
+          >
+            Responsive Grid
           </button>
           <button
             className={`preset-btn ${selectedScenario === 'multiseries' ? 'active' : ''}`}

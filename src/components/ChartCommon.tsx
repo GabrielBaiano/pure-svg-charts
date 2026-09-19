@@ -61,7 +61,9 @@ export function useChartBase(props: any) {
     showYAxis: props.showYAxis ?? preset.showYAxis ?? true,
     glow: props.glow ?? preset.glow ?? false,
     crosshair: props.crosshair ?? false,
-    animated: props.animated ?? true
+    animated: props.animated ?? true,
+    negativeColor: props.negativeColor ?? '#f7768e',
+    showZeroLine: props.showZeroLine ?? true
   };
 }
 
@@ -144,7 +146,21 @@ export const ChartGrid: React.FC<{
   width: number;
   height: number;
   valueFormatter: (val: number) => string;
-}> = ({ showGrid = true, showYAxis = true, gridLines = 4, minVal, maxVal, pad, width, height, valueFormatter }) => {
+  showZeroLine?: boolean;
+  zeroY?: number;
+}> = ({
+  showGrid = true,
+  showYAxis = true,
+  gridLines = 4,
+  minVal,
+  maxVal,
+  pad,
+  width,
+  height,
+  valueFormatter,
+  showZeroLine = true,
+  zeroY
+}) => {
   if (!showGrid || gridLines <= 1) return null;
   const chartHeight = Math.max(1, height - pad.top - pad.bottom);
   const valStep = (maxVal - minVal) / (gridLines - 1);
@@ -166,9 +182,27 @@ export const ChartGrid: React.FC<{
     }
   }
 
+  const effectiveZeroY =
+    zeroY !== undefined
+      ? zeroY
+      : minVal < 0 && maxVal > 0
+      ? pad.top + ((maxVal - 0) / (maxVal - minVal)) * chartHeight
+      : undefined;
+
   return (
     <g className="pure-svg-grid">
       <path d={pathD} stroke="currentColor" strokeOpacity={0.15} strokeDasharray="3 3" strokeWidth={1} />
+      {showZeroLine && effectiveZeroY !== undefined && (
+        <line
+          x1={pad.left}
+          y1={effectiveZeroY}
+          x2={width - pad.right}
+          y2={effectiveZeroY}
+          stroke="currentColor"
+          strokeOpacity={0.4}
+          strokeWidth={1.5}
+        />
+      )}
       {showYAxis && (
         <g fill="currentColor" opacity={0.65} fontSize={10} fontWeight="600" fontFamily="monospace" textAnchor="end">
           {yLabels}

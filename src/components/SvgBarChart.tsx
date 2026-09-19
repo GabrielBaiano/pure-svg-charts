@@ -67,7 +67,9 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     showYAxis,
     glow,
     crosshair,
-    animated
+    animated,
+    negativeColor,
+    showZeroLine
   } = base;
 
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
@@ -103,28 +105,54 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     return Array.from({ length: categoryCount }, (_, i) => ref.data[i]?.label || `#${i + 1}`);
   }, [normalizedSeries, categoryCount]);
 
-  const { maxVal, categoryTotals } = useMemo(() => {
-    if (categoryCount === 0) return { maxVal: 1, categoryTotals: [] };
+  const { minVal, maxVal, categoryPosTotals, categoryNegTotals } = useMemo(() => {
+    if (categoryCount === 0) return { minVal: 0, maxVal: 1, categoryPosTotals: [], categoryNegTotals: [] };
 
     if (isMultiSeries && stacked) {
-      const totals = Array.from({ length: categoryCount }, (_, catIdx) => {
-        return normalizedSeries.reduce(
-          (sum, s) => sum + Math.max(0, s.data[catIdx]?.value || 0),
-          0
-        );
-      });
-      const max = Math.max(...totals, 0);
-      return { maxVal: max === 0 ? 1 : max, categoryTotals: totals };
+      const posTotals: number[] = [];
+      const negTotals: number[] = [];
+      for (let catIdx = 0; catIdx < categoryCount; catIdx++) {
+        let pos = 0;
+        let neg = 0;
+        for (const s of normalizedSeries) {
+          const v = s.data[catIdx]?.value || 0;
+          if (v > 0) pos += v;
+          else if (v < 0) neg += v;
+        }
+        posTotals.push(pos);
+        negTotals.push(neg);
+      }
+      let min = Math.min(0, ...negTotals);
+      let max = Math.max(0, ...posTotals);
+      if (min === max) {
+        min = min > 0 ? 0 : min - 1;
+        max = max === 0 ? 1 : max + 1;
+      }
+      return { minVal: min, maxVal: max, categoryPosTotals: posTotals, categoryNegTotals: negTotals };
     }
 
+    let min = 0;
     let max = 0;
     for (const s of normalizedSeries) {
       for (const d of s.data) {
+        if (d.value < min) min = d.value;
         if (d.value > max) max = d.value;
       }
     }
-    return { maxVal: max === 0 ? 1 : max, categoryTotals: [] };
+    if (min === max) {
+      min = min > 0 ? 0 : min - 1;
+      max = max === 0 ? 1 : max + 1;
+    }
+    return { minVal: min, maxVal: max, categoryPosTotals: [], categoryNegTotals: [] };
   }, [normalizedSeries, categoryCount, isMultiSeries, stacked]);
+
+  const valueRange = Math.max(0.0001, maxVal - minVal);
+  const zeroY =
+    minVal < 0 && maxVal > 0
+      ? pad.top + ((maxVal - 0) / valueRange) * chartHeight
+      : minVal >= 0
+      ? baselineY
+      : pad.top;
 
   const slotWidth = categoryCount > 0 ? chartWidth / categoryCount : chartWidth;
   const barWidth = Math.max(2, slotWidth * (1 - barGap));
@@ -138,49 +166,72 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
       const gap = Math.max(0, stackGap);
 
       for (let catIdx = 0; catIdx < categoryCount; catIdx++) {
-        const stackTotal = categoryTotals[catIdx] || 0;
         const x = pad.left + catIdx * slotWidth + barOffset;
-        let accumY = 0;
+        let accumPosY = 0;
+        let accumNegY = 0;
 
-        // Determine first and highest series with non-zero value to round top corners accurately
-        let firstActiveSeriesIdx = -1;
-        let lastActiveSeriesIdx = -1;
+        let highestPosIdx = -1;
+        let lowestNegIdx = -1;
+        const posTotal = categoryPosTotals[catIdx] || 0;
+        const negTotal = categoryNegTotals[catIdx] || 0;
+
         for (let sIdx = 0; sIdx < normalizedSeries.length; sIdx++) {
-          if ((normalizedSeries[sIdx].data[catIdx]?.value || 0) > 0) {
-            if (firstActiveSeriesIdx === -1) firstActiveSeriesIdx = sIdx;
-            lastActiveSeriesIdx = sIdx;
-          }
+          const v = normalizedSeries[sIdx].data[catIdx]?.value || 0;
+          if (v > 0) highestPosIdx = sIdx;
+          else if (v < 0 && lowestNegIdx === -1) lowestNegIdx = sIdx;
         }
 
         for (let sIdx = 0; sIdx < normalizedSeries.length; sIdx++) {
           const s = normalizedSeries[sIdx];
-          const val = Math.max(0, s.data[catIdx]?.value || 0);
+          const val = s.data[catIdx]?.value || 0;
           if (val === 0 && normalizedSeries.length > 1) continue;
 
-          const segHeight = Math.max(val > 0 ? 2 : 0, (val / maxVal) * chartHeight);
-          const segY = baselineY - accumY - segHeight;
-          const isTop = sIdx === lastActiveSeriesIdx;
+          const isNeg = val < 0;
+          const segHeight = Math.max(val !== 0 ? 2 : 0, (Math.abs(val) / valueRange) * chartHeight);
 
+          let segY = zeroY;
           let segPath = '';
           let segRx = 0;
 
-          if (gap > 0) {
-            segRx = Math.min(radius, barWidth / 2, segHeight / 2);
-            segPath = generateBarPath(x, segY, barWidth, segHeight, segRx, true, true);
-            accumY += segHeight + gap;
+          if (isNeg) {
+            segY = zeroY + accumNegY;
+            const isBottom = sIdx === lowestNegIdx;
+
+            if (gap > 0) {
+              segRx = Math.min(radius, barWidth / 2, segHeight / 2);
+              segPath = generateBarPath(x, segY, barWidth, segHeight, segRx, true, true);
+              accumNegY += segHeight + gap;
+            } else {
+              segRx = Math.min(radius, barWidth / 2, segHeight);
+              const roundTop = false;
+              const roundBottom = isBottom;
+              const overlap = isBottom ? 0 : 0.5;
+              segPath = generateBarPath(x, segY, barWidth, segHeight + overlap, segRx, roundTop, roundBottom);
+              accumNegY += segHeight;
+            }
           } else {
-            // Seamless flush stack: ONLY round the top corners of the top segment
-            segRx = Math.min(radius, barWidth / 2, segHeight);
-            const roundTop = isTop;
-            const roundBottom = false;
-            // 0.5px overlap for lower segments prevents browser subpixel anti-aliasing hairline gap
-            const overlap = isTop ? 0 : 0.5;
-            segPath = generateBarPath(x, segY, barWidth, segHeight + overlap, segRx, roundTop, roundBottom);
-            accumY += segHeight;
+            const isTop = sIdx === highestPosIdx;
+            segY = zeroY - accumPosY - segHeight;
+
+            if (gap > 0) {
+              segRx = Math.min(radius, barWidth / 2, segHeight / 2);
+              segPath = generateBarPath(x, segY, barWidth, segHeight, segRx, true, true);
+              accumPosY += segHeight + gap;
+            } else {
+              segRx = Math.min(radius, barWidth / 2, segHeight);
+              const roundTop = isTop;
+              const roundBottom = false;
+              const overlap = isTop ? 0 : 0.5;
+              segPath = generateBarPath(x, segY, barWidth, segHeight + overlap, segRx, roundTop, roundBottom);
+              accumPosY += segHeight;
+            }
           }
 
+          const stackTotal = isNeg ? Math.abs(negTotal) : posTotal;
           const percent =
-            stackTotal > 0 ? ((val / stackTotal) * 100).toFixed(1) : '0';
+            stackTotal > 0 ? ((Math.abs(val) / stackTotal) * 100).toFixed(1) : '0';
+
+          const segColor = isNeg && negativeColor ? negativeColor : s.color;
 
           segments.push({
             key: `${s.id}-${catIdx}`,
@@ -195,7 +246,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
             value: val,
             label: categoryLabels[catIdx],
             seriesName: s.name,
-            seriesColor: s.color,
+            seriesColor: segColor,
             stackTotal,
             percent
           });
@@ -208,12 +259,24 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
       for (let catIdx = 0; catIdx < categoryCount; catIdx++) {
         for (let sIdx = 0; sIdx < seriesCount; sIdx++) {
           const s = normalizedSeries[sIdx];
-          const val = Math.max(0, s.data[catIdx]?.value || 0);
+          const val = s.data[catIdx]?.value || 0;
+          const isNeg = val < 0;
           const subX = pad.left + catIdx * slotWidth + barOffset + sIdx * subBarWidth;
-          const subHeight = Math.max(1, (val / maxVal) * chartHeight);
-          const subY = baselineY - subHeight;
+          const subHeight = Math.max(val !== 0 ? 2 : 0, (Math.abs(val) / valueRange) * chartHeight);
           const rx = Math.min(radius, subBarWidth / 2, subHeight);
-          const segPath = generateBarPath(subX, subY, subBarWidth, subHeight, rx, true, false);
+
+          let subY = zeroY;
+          let segPath = '';
+
+          if (isNeg) {
+            subY = zeroY;
+            segPath = generateBarPath(subX, subY, subBarWidth, subHeight, rx, false, true);
+          } else {
+            subY = zeroY - subHeight;
+            segPath = generateBarPath(subX, subY, subBarWidth, subHeight, rx, true, false);
+          }
+
+          const segColor = isNeg && negativeColor ? negativeColor : s.color;
 
           segments.push({
             key: `${s.id}-${catIdx}`,
@@ -228,7 +291,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
             value: val,
             label: categoryLabels[catIdx],
             seriesName: s.name,
-            seriesColor: s.color
+            seriesColor: segColor
           });
         }
       }
@@ -238,11 +301,23 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
       for (let catIdx = 0; catIdx < categoryCount; catIdx++) {
         const item = s.data[catIdx];
         const val = item?.value || 0;
+        const isNeg = val < 0;
         const x = pad.left + catIdx * slotWidth + barOffset;
-        const bHeight = Math.max(1, (val / maxVal) * chartHeight);
-        const y = baselineY - bHeight;
+        const bHeight = Math.max(val !== 0 ? 2 : 0, (Math.abs(val) / valueRange) * chartHeight);
         const rx = Math.min(radius, barWidth / 2, bHeight);
-        const segPath = generateBarPath(x, y, barWidth, bHeight, rx, true, false);
+
+        let y = zeroY;
+        let segPath = '';
+
+        if (isNeg) {
+          y = zeroY;
+          segPath = generateBarPath(x, y, barWidth, bHeight, rx, false, true);
+        } else {
+          y = zeroY - bHeight;
+          segPath = generateBarPath(x, y, barWidth, bHeight, rx, true, false);
+        }
+
+        const segColor = isNeg && negativeColor ? negativeColor : s.color;
 
         segments.push({
           key: `${s.id}-${catIdx}`,
@@ -257,13 +332,13 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
           value: val,
           label: item?.label || categoryLabels[catIdx],
           seriesName: s.name,
-          seriesColor: s.color
+          seriesColor: segColor
         });
       }
     }
 
     return segments;
-  }, [categoryCount, isMultiSeries, stacked, stackGap, normalizedSeries, categoryTotals, pad.left, slotWidth, barOffset, barWidth, baselineY, maxVal, chartHeight, radius, categoryLabels]);
+  }, [categoryCount, isMultiSeries, stacked, stackGap, normalizedSeries, categoryPosTotals, categoryNegTotals, pad.left, pad.top, slotWidth, barOffset, barWidth, baselineY, zeroY, valueRange, chartHeight, radius, categoryLabels, negativeColor]);
 
   const visibleLabelIndices = useMemo(() => {
     if (!categoryLabels.length) return new Set<number>();
@@ -312,19 +387,21 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
           showGrid={showGrid}
           showYAxis={showYAxis}
           gridLines={gridLines}
-          minVal={0}
+          minVal={minVal}
           maxVal={maxVal}
           pad={pad}
           width={width}
           height={height}
           valueFormatter={valueFormatter}
+          showZeroLine={showZeroLine}
+          zeroY={zeroY}
         />
 
         {crosshair && activeSegment && (
           <SvgCrosshair
             x={activeSegment.x + activeSegment.width / 2}
             y={activeSegment.y}
-            baselineY={baselineY}
+            baselineY={zeroY}
             padLeft={pad.left}
             padRight={pad.right}
             width={width}
@@ -342,7 +419,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
               {showValues && !isMultiSeries && (categoryCount <= 15 || visibleLabelIndices.has(seg.catIdx)) && (
                 <text
                   x={seg.x + seg.width / 2}
-                  y={seg.y - 6}
+                  y={seg.value < 0 ? seg.y + seg.height + 14 : seg.y - 6}
                   textAnchor="middle"
                   fill="currentColor"
                   fontSize="11"

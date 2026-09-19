@@ -22,6 +22,8 @@ We got completely sick of charting libraries that drag **200+ kB of heavy D3 dep
 **Pure SVG Charts** is the lightweight antidote:
 - 🪶 **Under 10 kB (min+gzip):** Over 20x lighter than Recharts, ECharts, and Tremor. Zero external runtime dependencies.
 - ⚡ **High-Density Engine (5,000+ Points):** Built-in Largest-Triangle-Three-Buckets (LTTB) downsampling renders 5,000 to 50,000 points in **~2.5 ms** while strictly preserving visual peaks and troughs.
+- 📐 **Auto-Sizing ResponsiveContainer:** Adapts dynamically to 100% parent container width/height via native `ResizeObserver` with zero layout distortion.
+- ⚖️ **Negative Values & Diverging Bars:** Seamless support for mixed positive and negative metrics with a prominent zero-baseline dividing line and downward-extending negative bars.
 - 📊 **Stacked & Grouped Bars:** Multi-series financial stacking with custom top corner rounding, gap control (`stackGap`), and percentage share hover metrics.
 - 🌊 **Stacked Area Curves:** Cumulative Bézier area fills closed natively in SVG without polygon tears.
 - 🚀 **Zero DOM Bloat:** Virtualized continuous tracking cursor keeps the SVG DOM tree under 80 nodes, even on 50,000 data points.
@@ -192,7 +194,69 @@ export function TrafficAcquisitionChart() {
 
 ---
 
-### 4. Donut Chart & Sparklines
+### 4. Diverging Bars (Negative Values & Zero Baseline)
+
+Plot mixed positive gains and negative losses with an automatic zero axis and dedicated negative color accents.
+
+```tsx
+import React from 'react';
+import { SvgBarChart } from 'pure-svg-charts';
+
+const pnlData = [
+  { label: 'Jan', value: 48 },
+  { label: 'Feb', value: -26 },
+  { label: 'Mar', value: 65 },
+  { label: 'Apr', value: -18 },
+  { label: 'May', value: 84 },
+  { label: 'Jun', value: -42 }
+];
+
+export function ProfitLossChart() {
+  return (
+    <SvgBarChart
+      data={pnlData}
+      negativeColor="#f7768e" // Distinct accent for negative bars
+      showZeroLine             // Prominent horizontal line at 0
+      showValues
+      radius={6}
+      variant="tokyonight"
+      title="Net Operating Income (P&L)"
+      width={800}
+      height={320}
+    />
+  );
+}
+```
+
+---
+
+### 5. Responsive Container (Auto-Sizing Layouts)
+
+Fill 100% of any dashboard grid, card, or viewport dynamically using native `ResizeObserver`.
+
+```tsx
+import React from 'react';
+import { ResponsiveContainer, SvgLineChart } from 'pure-svg-charts';
+
+export function ResponsiveCard() {
+  return (
+    <div style={{ width: '100%', height: '300px' }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <SvgLineChart
+          data={[10, 25, 18, 42, 60]}
+          smooth
+          fillGradient
+          variant="tokyonight"
+        />
+      </ResponsiveContainer>
+    </div>
+  );
+}
+```
+
+---
+
+### 6. Donut Chart & Sparklines
 
 ```tsx
 import React from 'react';
@@ -252,6 +316,8 @@ All chart components inherit these common properties:
 | `showXAxis` | `boolean` | `true` | Show X-axis category labels |
 | `showYAxis` | `boolean` | `true` | Show Y-axis numeric scale labels |
 | `crosshair` | `boolean` | `false` | Enable interactive tracking guidelines and axis badges |
+| `negativeColor` | `string` | `'#f7768e'` | Accent color used for negative values below zero |
+| `showZeroLine` | `boolean` | `true` | Show prominent horizontal line at zero when crossing zero |
 | `glow` | `boolean` | `false` | Enable GPU neon drop-shadow filter |
 | `valueFormatter` | `(val: number) => string` | `(v) => v.toLocaleString()` | Formatter for tooltips and axis labels |
 
@@ -271,6 +337,19 @@ All chart components inherit these common properties:
 | `dotRadius` | `number` | `4` | Radius of data point circles |
 | `showLegend` | `boolean` | `true` | Show series color swatch legend |
 | `onPointHover` | `(point: Point | null) => void` | `undefined` | Hover callback |
+
+### `ResponsiveContainerProps`
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `width` | `number | string` | `'100%'` | Outer container width (percentage or pixel number) |
+| `height` | `number | string` | `'100%'` | Outer container height (percentage or pixel number) |
+| `aspect` | `number` | `undefined` | Optional aspect ratio (`width / height`) |
+| `minWidth` | `number` | `undefined` | Minimum width in pixels |
+| `minHeight` | `number` | `undefined` | Minimum height in pixels |
+| `maxHeight` | `number` | `undefined` | Maximum height in pixels |
+| `debounce` | `number` | `0` | Debounce duration in ms for resize callbacks |
+| `children` | `ReactElement | (dims) => ReactElement` | required | Child SVG chart component or render function |
 
 ### `SvgBarChartProps`
 
