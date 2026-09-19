@@ -45,11 +45,14 @@ export const SvgDonutChart: React.FC<SvgDonutChartProps> = ({
   const slices = useMemo(() => {
     if (!total) return [];
     let accumulated = 0;
-    const gap = cleanData.length > 1 ? 2 : 0;
+    // Gap in circumference units between slices.
+    // With strokeLinecap="butt" (square cut), a gap of ~3px gives clean separation without overlap.
+    const gap = cleanData.length > 1 ? Math.max(2, strokeWidth * 0.1) : 0;
 
     return cleanData.map((slice, index) => {
       const sliceLength = (slice.value / total) * circumference;
-      const strokeDasharray = `${Math.max(0, sliceLength - gap)} ${circumference - Math.max(0, sliceLength - gap)}`;
+      const dashLen = Math.max(0, sliceLength - gap);
+      const strokeDasharray = `${dashLen} ${circumference - dashLen}`;
       const strokeDashoffset = -accumulated;
       accumulated += sliceLength;
       return {
@@ -60,7 +63,7 @@ export const SvgDonutChart: React.FC<SvgDonutChartProps> = ({
         percentage: ((slice.value / total) * 100).toFixed(1)
       };
     });
-  }, [cleanData, total, circumference]);
+  }, [cleanData, total, circumference, strokeWidth]);
 
   const setHover = (idx: number | null) => {
     setHoveredIdx(idx);
@@ -116,7 +119,6 @@ export const SvgDonutChart: React.FC<SvgDonutChartProps> = ({
                     strokeWidth={isHovered ? strokeWidth + 4 : strokeWidth}
                     strokeDasharray={s.strokeDasharray}
                     strokeDashoffset={s.strokeDashoffset}
-                    strokeLinecap="round"
                     filter={isHovered ? `url(#${glowId})` : undefined}
                     style={{
                       cursor: 'pointer',
