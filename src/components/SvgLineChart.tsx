@@ -293,33 +293,53 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           />
         )}
 
-        {/* Static dots and values (rendered when not high-density or sampled) */}
-        {renderedSeries.map((s) =>
-          s.points.map((pt, ptIdx) => {
-            const isHovered = activePoint?.x === pt.x && activePoint?.y === pt.y;
-            const shouldShowValue =
-              showValues &&
-              !isMultiSeries &&
-              (maxSeriesPoints <= 25 || ptIdx % Math.ceil(maxSeriesPoints / 12) === 0);
+        {/* Static dots and values (rendered only when showDots or showValues is enabled) */}
+        {(!isHighDensity && showDots || (showValues && !isMultiSeries)) &&
+          renderedSeries.map((s) =>
+            s.points.map((pt, ptIdx) => {
+              const shouldShowValue =
+                showValues &&
+                !isMultiSeries &&
+                (maxSeriesPoints <= 25 || ptIdx % Math.ceil(maxSeriesPoints / 12) === 0);
+              const shouldShowDot = showDots && !isHighDensity;
 
-            return (
-              <g key={`${s.id}-${ptIdx}`}>
-                {shouldShowValue && (
-                  <text
-                    x={pt.x}
-                    y={pt.y - (dotRadius + 6)}
-                    textAnchor="middle"
-                    fill="currentColor"
-                    fontSize="11"
-                    fontWeight="700"
-                    pointerEvents="none"
-                  >
-                    {valueFormatter(pt.value)}
-                  </text>
-                )}
+              if (!shouldShowValue && !shouldShowDot) return null;
 
-                {showDots && !isHighDensity && (
+              const isHovered = activePoint?.x === pt.x && activePoint?.y === pt.y;
+
+              if (shouldShowValue && shouldShowDot) {
+                return (
+                  <g key={`${s.id}-${ptIdx}`}>
+                    <text
+                      x={pt.x}
+                      y={pt.y - (dotRadius + 6)}
+                      textAnchor="middle"
+                      fill="currentColor"
+                      fontSize="11"
+                      fontWeight="700"
+                      pointerEvents="none"
+                    >
+                      {valueFormatter(pt.value)}
+                    </text>
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={isHovered ? dotRadius * 1.5 : dotRadius}
+                      fill={isHovered ? '#fff' : s.color}
+                      stroke={s.color}
+                      strokeWidth={isHovered ? 3 : 2}
+                      style={{ cursor: 'pointer', transition: animated ? 'all 0.2s' : undefined }}
+                      onMouseEnter={() => handleMouseEnter(pt, s.name, s.color)}
+                      onMouseLeave={handleMouseLeave}
+                    />
+                  </g>
+                );
+              }
+
+              if (shouldShowDot) {
+                return (
                   <circle
+                    key={`${s.id}-${ptIdx}`}
                     cx={pt.x}
                     cy={pt.y}
                     r={isHovered ? dotRadius * 1.5 : dotRadius}
@@ -330,11 +350,25 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
                     onMouseEnter={() => handleMouseEnter(pt, s.name, s.color)}
                     onMouseLeave={handleMouseLeave}
                   />
-                )}
-              </g>
-            );
-          })
-        )}
+                );
+              }
+
+              return (
+                <text
+                  key={`${s.id}-${ptIdx}`}
+                  x={pt.x}
+                  y={pt.y - (dotRadius + 6)}
+                  textAnchor="middle"
+                  fill="currentColor"
+                  fontSize="11"
+                  fontWeight="700"
+                  pointerEvents="none"
+                >
+                  {valueFormatter(pt.value)}
+                </text>
+              );
+            })
+          )}
 
         {/* Dynamic active point highlight dot (especially vital for high-density curves) */}
         {activePoint && (
