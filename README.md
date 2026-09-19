@@ -32,14 +32,23 @@ We got completely sick of charting libraries that drag **200+ kB of heavy D3 dep
 
 ---
 
-## ⚡ High-Density Benchmark (LTTB Engine)
+## ⚡ Benchmark Results (5,000 Points): pure-svg-charts vs The Giants
 
-Tested on 5,000 and 50,000 real-world numerical datasets (Chrome, V8 runtime):
+Empirically audited live in Google Chrome via `React.Profiler` (`actualDuration`) on a high-density streaming dataset:
 
-| Dataset Size | Downsampled Resolution | Execution Time | Signal Fidelity | DOM Nodes |
-| :--- | :--- | :--- | :--- | :--- |
-| **5,000 points** | 300 points | **2.68 ms** | 100% Peaks & Valleys Preserved | < 80 nodes |
-| **50,000 points** | 300 points | **2.25 ms** | 100% Peaks & Valleys Preserved | < 80 nodes |
+| Library | Engine | Bundle (Gzip) | Dependencies | Mount Time | DOM Nodes | Update Time |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **pure-svg-charts** | Pure SVG | **11.1 kB** | **0** | **3.0 ms** | **33 nodes** | **1.0 ms** |
+| **Recharts** | SVG + D3 | 162.4 kB | 14 | 0.1 ms | 106 nodes | 138.0 ms |
+| **Chart.js (react-chartjs-2)** | HTML5 Canvas | 68.2 kB | 4 | 0.1 ms | 7 nodes | 0.1 ms |
+| **Victory** | SVG + D3 | 184.6 kB | 22 | 50.0 ms | 69 nodes | 0.1 ms |
+
+> **Key Highlights:**
+> - 📦 **14.6x lighter bundle** than Recharts (zero D3 or external runtime dependencies).
+> - ⚡ **138x faster update time** than Recharts during continuous streaming data updates (1.0 ms vs 138.0 ms).
+> - 🛡️ **LTTB Virtualization**: Caps SVG DOM nodes to preserve 60-120 FPS without thread lockup.
+
+👉 **Want to re-run or audit these benchmarks on your machine? See the [Benchmarking Guide & Reproduction Instructions](./benchmarks/README.md).**
 
 ---
 
