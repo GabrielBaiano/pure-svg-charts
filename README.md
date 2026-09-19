@@ -8,7 +8,6 @@
   <a href="#-license"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="MIT License" /></a>
   <a href="https://bundlephobia.com"><img src="https://img.shields.io/badge/bundle%20size-%3C%2010kB%20(gzip)-success.svg?style=flat-square" alt="Bundle Size" /></a>
   <a href="#"><img src="https://img.shields.io/badge/React-%3E%3D18.0.0-61dafb.svg?style=flat-square" alt="React 18+" /></a>
-  <a href="https://github.com/GabrielBaiano/awesome-readme"><img src="https://img.shields.io/badge/readme-awesome--readme-ff69b4.svg?style=flat-square" alt="Awesome Readme" /></a>
   <a href="#"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome" /></a>
 </p>
 
