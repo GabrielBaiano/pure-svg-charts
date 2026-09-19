@@ -68,3 +68,47 @@ export function generateStackedAreaPath(
   return `${topLine} ${bottomSegs} Z`;
 }
 
+/**
+ * Generates an SVG path string for a rectangular bar with independent corner rounding.
+ * Allows top corners (top-left, top-right) and bottom corners (bottom-left, bottom-right)
+ * to be rounded independently, preventing unwanted notches or curved edges at internal stack boundaries.
+ */
+export function generateBarPath(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  roundTop = true,
+  roundBottom = false
+): string {
+  const maxR = roundTop && roundBottom ? height / 2 : height;
+  const r = Math.max(0, Math.min(radius, width / 2, maxR));
+  const rTop = roundTop ? r : 0;
+  const rBottom = roundBottom ? r : 0;
+
+  if (rTop <= 0 && rBottom <= 0) {
+    return `M ${x.toFixed(2)},${y.toFixed(2)} h ${width.toFixed(2)} v ${height.toFixed(2)} h ${(-width).toFixed(2)} Z`;
+  }
+
+  const parts = [`M ${(x + rTop).toFixed(2)},${y.toFixed(2)}`];
+  parts.push(`h ${(width - 2 * rTop).toFixed(2)}`);
+  if (rTop > 0) {
+    parts.push(`a ${rTop.toFixed(2)},${rTop.toFixed(2)} 0 0 1 ${rTop.toFixed(2)},${rTop.toFixed(2)}`);
+  }
+  parts.push(`v ${(height - rTop - rBottom).toFixed(2)}`);
+  if (rBottom > 0) {
+    parts.push(`a ${rBottom.toFixed(2)},${rBottom.toFixed(2)} 0 0 1 ${(-rBottom).toFixed(2)},${rBottom.toFixed(2)}`);
+  }
+  parts.push(`h ${(-(width - 2 * rBottom)).toFixed(2)}`);
+  if (rBottom > 0) {
+    parts.push(`a ${rBottom.toFixed(2)},${rBottom.toFixed(2)} 0 0 1 ${(-rBottom).toFixed(2)},${(-rBottom).toFixed(2)}`);
+  }
+  parts.push(`v ${(-(height - rTop - rBottom)).toFixed(2)}`);
+  if (rTop > 0) {
+    parts.push(`a ${rTop.toFixed(2)},${rTop.toFixed(2)} 0 0 1 ${rTop.toFixed(2)},${(-rTop).toFixed(2)}`);
+  }
+  parts.push('Z');
+  return parts.join(' ');
+}
+

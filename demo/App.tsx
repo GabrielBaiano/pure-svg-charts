@@ -551,7 +551,7 @@ function ChartDemo() {
  * High-precision financial bar stacking rendered natively in pure SVG with zero external dependencies.
  */
 function ChartDemo() {
-  const [stacked, setStacked] = useState(true);
+  const [mode, setMode] = useState<'stacked' | 'gap' | 'grouped'>('stacked');
 
   const series = [
     {
@@ -594,23 +594,30 @@ function ChartDemo() {
           Bar Mode:
         </span>
         <button
-          className={"btn " + (stacked ? "active" : "")}
-          onClick={() => setStacked(true)}
+          className={"btn " + (mode === "stacked" ? "active" : "")}
+          onClick={() => setMode("stacked")}
         >
-          Stacked Bars
+          Stacked (Seamless)
         </button>
         <button
-          className={"btn " + (!stacked ? "active" : "")}
-          onClick={() => setStacked(false)}
+          className={"btn " + (mode === "gap" ? "active" : "")}
+          onClick={() => setMode("gap")}
         >
-          Grouped (Side-by-Side)
+          Stacked (2px Gap)
+        </button>
+        <button
+          className={"btn " + (mode === "grouped" ? "active" : "")}
+          onClick={() => setMode("grouped")}
+        >
+          Grouped
         </button>
       </div>
 
       <SvgBarChart
         variant="tokyonight"
         series={series}
-        stacked={stacked}
+        stacked={mode !== 'grouped'}
+        stackGap={mode === 'gap' ? 2 : 0}
         title="2026 Fiscal Revenue Streams"
         subtitle="Quarterly channel breakdown • Percentage share on hover"
         metric="$419k Total"
@@ -644,7 +651,7 @@ const ADDABLE_PROPS: {
   icon: string;
   name: string;
   desc: string;
-  components: string[];
+  components: Array<'SvgLineChart' | 'SvgBarChart' | 'SvgDonutChart' | 'SvgSparkline'>;
 }[] = [
   // --- SvgLineChart & SvgBarChart (BaseChartProps) ---
   { propName: 'glow',             snippet: 'glow',                   icon: '⚡',  name: 'glow',                   desc: 'GPU drop shadow neon effect',             components: ['SvgLineChart', 'SvgBarChart'] },
@@ -660,6 +667,7 @@ const ADDABLE_PROPS: {
   { propName: 'curvature',        snippet: 'curvature={0}',          icon: '📐',  name: 'curvature={0}',           desc: 'Straight lines (zero curvature)',         components: ['SvgLineChart'] },
   { propName: 'showLegend',       snippet: 'showLegend={false}',     icon: '📋',  name: 'showLegend={false}',      desc: 'Hide multi-series legend',                components: ['SvgLineChart', 'SvgBarChart'] },
   { propName: 'stacked',          snippet: 'stacked={false}',        icon: '📊',  name: 'stacked={false}',         desc: 'Toggle stacked vs grouped mode',          components: ['SvgBarChart', 'SvgLineChart'] },
+  { propName: 'stackGap',         snippet: 'stackGap={2}',           icon: '↕️',  name: 'stackGap={2}',            desc: 'Vertical gap between stacked segments',   components: ['SvgBarChart'] },
   { propName: 'maxDisplayPoints', snippet: 'maxDisplayPoints={150}', icon: '⚡',  name: 'maxDisplayPoints={150}',  desc: 'LTTB target display resolution',          components: ['SvgLineChart'] },
   // --- SvgBarChart only ---
   { propName: 'radius',           snippet: 'radius={10}',            icon: '🔲',  name: 'radius={10}',             desc: 'Rounded bar corner radius',               components: ['SvgBarChart'] },

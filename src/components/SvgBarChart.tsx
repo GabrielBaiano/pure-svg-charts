@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { getSampledLabelIndices } from '../core/scale';
+import { generateBarPath } from '../core/bezier';
 import { SvgBarChartProps } from '../core/types';
 import {
   ChartEmpty,
@@ -22,6 +23,7 @@ interface RenderedBarSegment {
   width: number;
   height: number;
   rx: number;
+  path: string;
   value: number;
   label?: string;
   seriesName: string;
@@ -35,6 +37,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     data = [],
     series,
     stacked = true,
+    stackGap = 0,
     showLegend = true,
     radius = 6,
     barGap = 0.3,
@@ -132,17 +135,20 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     const segments: RenderedBarSegment[] = [];
 
     if (isMultiSeries && stacked) {
+      const gap = Math.max(0, stackGap);
+
       for (let catIdx = 0; catIdx < categoryCount; catIdx++) {
         const stackTotal = categoryTotals[catIdx] || 0;
         const x = pad.left + catIdx * slotWidth + barOffset;
         let accumY = 0;
 
-        // Determine which is the highest series with non-zero value to round its top corners
+        // Determine first and highest series with non-zero value to round top corners accurately
+        let firstActiveSeriesIdx = -1;
         let lastActiveSeriesIdx = -1;
-        for (let sIdx = normalizedSeries.length - 1; sIdx >= 0; sIdx--) {
+        for (let sIdx = 0; sIdx < normalizedSeries.length; sIdx++) {
           if ((normalizedSeries[sIdx].data[catIdx]?.value || 0) > 0) {
+            if (firstActiveSeriesIdx === -1) firstActiveSeriesIdx = sIdx;
             lastActiveSeriesIdx = sIdx;
-            break;
           }
         }
 
@@ -154,8 +160,24 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
           const segHeight = Math.max(val > 0 ? 2 : 0, (val / maxVal) * chartHeight);
           const segY = baselineY - accumY - segHeight;
           const isTop = sIdx === lastActiveSeriesIdx;
-          const rx = isTop ? Math.min(radius, barWidth / 2) : 0;
-          accumY += segHeight;
+
+          let segPath = '';
+          let segRx = 0;
+
+          if (gap > 0) {
+            segRx = Math.min(radius, barWidth / 2, segHeight / 2);
+            segPath = generateBarPath(x, segY, barWidth, segHeight, segRx, true, true);
+            accumY += segHeight + gap;
+          } else {
+            // Seamless flush stack: ONLY round the top corners of the top segment
+            segRx = Math.min(radius, barWidth / 2, segHeight);
+            const roundTop = isTop;
+            const roundBottom = false;
+            // 0.5px overlap for lower segments prevents browser subpixel anti-aliasing hairline gap
+            const overlap = isTop ? 0 : 0.5;
+            segPath = generateBarPath(x, segY, barWidth, segHeight + overlap, segRx, roundTop, roundBottom);
+            accumY += segHeight;
+          }
 
           const percent =
             stackTotal > 0 ? ((val / stackTotal) * 100).toFixed(1) : '0';
@@ -168,7 +190,8 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
             y: segY,
             width: barWidth,
             height: segHeight,
-            rx,
+            rx: segRx,
+            path: segPath,
             value: val,
             label: categoryLabels[catIdx],
             seriesName: s.name,
@@ -189,7 +212,8 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
           const subX = pad.left + catIdx * slotWidth + barOffset + sIdx * subBarWidth;
           const subHeight = Math.max(1, (val / maxVal) * chartHeight);
           const subY = baselineY - subHeight;
-          const rx = Math.min(radius, subBarWidth / 2);
+          const rx = Math.min(radius, subBarWidth / 2, subHeight);
+          const segPath = generateBarPath(subX, subY, subBarWidth, subHeight, rx, true, false);
 
           segments.push({
             key: `${s.id}-${catIdx}`,
@@ -200,6 +224,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
             width: subBarWidth,
             height: subHeight,
             rx,
+            path: segPath,
             value: val,
             label: categoryLabels[catIdx],
             seriesName: s.name,
@@ -216,7 +241,8 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
         const x = pad.left + catIdx * slotWidth + barOffset;
         const bHeight = Math.max(1, (val / maxVal) * chartHeight);
         const y = baselineY - bHeight;
-        const rx = Math.min(radius, barWidth / 2);
+        const rx = Math.min(radius, barWidth / 2, bHeight);
+        const segPath = generateBarPath(x, y, barWidth, bHeight, rx, true, false);
 
         segments.push({
           key: `${s.id}-${catIdx}`,
@@ -227,6 +253,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
           width: barWidth,
           height: bHeight,
           rx,
+          path: segPath,
           value: val,
           label: item?.label || categoryLabels[catIdx],
           seriesName: s.name,
@@ -236,7 +263,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     }
 
     return segments;
-  }, [categoryCount, isMultiSeries, stacked, normalizedSeries, categoryTotals, pad.left, slotWidth, barOffset, barWidth, baselineY, maxVal, chartHeight, radius, categoryLabels]);
+  }, [categoryCount, isMultiSeries, stacked, stackGap, normalizedSeries, categoryTotals, pad.left, slotWidth, barOffset, barWidth, baselineY, maxVal, chartHeight, radius, categoryLabels]);
 
   const visibleLabelIndices = useMemo(() => {
     if (!categoryLabels.length) return new Set<number>();
@@ -325,12 +352,8 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
                 </text>
               )}
 
-              <rect
-                x={seg.x}
-                y={seg.y}
-                width={seg.width}
-                height={seg.height}
-                rx={seg.rx}
+              <path
+                d={seg.path}
                 fill={seg.seriesColor}
                 opacity={isHovered ? 1 : 0.88}
                 filter={glow ? `url(#${glowId})` : undefined}

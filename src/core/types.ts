@@ -112,6 +112,8 @@ export interface SvgBarChartProps extends BaseChartProps {
   series?: BarSeries[];
   /** Whether multi-series bars are stacked vertically (default: true when series is present) */
   stacked?: boolean;
+  /** Vertical gap in pixels between stacked bar segments (default: 0 for flush/seamless) */
+  stackGap?: number;
   /** Show series legend when multiple series are provided (default: true) */
   showLegend?: boolean;
   /** Corner radius for rounded bars (default: 6) */
