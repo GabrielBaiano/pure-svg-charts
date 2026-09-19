@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { generateAreaPath, generateLinePath } from '../core/bezier';
+import { downsampleLTTB } from '../core/lttb';
 import { getSampledLabelIndices, scaleDataToPoints } from '../core/scale';
 import { Point, SvgLineChartProps } from '../core/types';
 import {
@@ -30,6 +31,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     subtitle,
     metric,
     showLegend = true,
+    maxDisplayPoints = 300,
     className = '',
     onPointHover
   } = props;
@@ -111,7 +113,12 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
 
   const renderedSeries = useMemo(() => {
     return normalizedSeries.map((s, idx) => {
-      const { points } = scaleDataToPoints(s.data, width, height, pad, minVal, maxVal);
+      const effectiveData =
+        maxDisplayPoints && maxDisplayPoints > 2 && s.data.length > maxDisplayPoints
+          ? downsampleLTTB(s.data, maxDisplayPoints)
+          : s.data;
+
+      const { points } = scaleDataToPoints(effectiveData, width, height, pad, minVal, maxVal);
       return {
         ...s,
         points,
@@ -120,9 +127,10 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
         gradId: `gr-${uid}-${idx}`
       };
     });
-  }, [normalizedSeries, width, height, pad, baselineY, minVal, maxVal, smooth, curvature, uid]);
+  }, [normalizedSeries, width, height, pad, baselineY, minVal, maxVal, smooth, curvature, uid, maxDisplayPoints]);
 
   const maxSeriesPoints = Math.max(0, ...renderedSeries.map((s) => s.points.length));
+  const isHighDensity = maxSeriesPoints > 60;
   const dotRadius = userDotRadius ?? (maxSeriesPoints > 50 ? 2.5 : maxSeriesPoints > 25 ? 3 : 4);
 
   const visibleLabels = useMemo(() => {
@@ -148,6 +156,46 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
   const handleMouseLeave = () => {
     setActivePoint(null);
     onPointHover?.(null);
+  };
+
+  const handleOverlayMouseMove = (e: React.MouseEvent<SVGRectElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (!rect.width) return;
+    const clientX = e.clientX - rect.left;
+    const svgX = pad.left + (clientX / rect.width) * chartWidth;
+
+    let closestPt: Point | null = null;
+    let closestDist = Infinity;
+    let closestSeriesName: string | undefined;
+    let closestSeriesColor: string | undefined;
+
+    for (const s of renderedSeries) {
+      if (!s.points.length) continue;
+      let low = 0;
+      let high = s.points.length - 1;
+      while (low <= high) {
+        const mid = (low + high) >> 1;
+        if (s.points[mid].x < svgX) low = mid + 1;
+        else high = mid - 1;
+      }
+      const i1 = Math.max(0, Math.min(s.points.length - 1, low));
+      const i0 = Math.max(0, i1 - 1);
+      const cand =
+        Math.abs(s.points[i0].x - svgX) < Math.abs(s.points[i1].x - svgX)
+          ? s.points[i0]
+          : s.points[i1];
+      const dist = Math.abs(cand.x - svgX);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestPt = cand;
+        closestSeriesName = s.name;
+        closestSeriesColor = s.color;
+      }
+    }
+
+    if (closestPt) {
+      handleMouseEnter(closestPt, closestSeriesName, closestSeriesColor);
+    }
   };
 
   if (!maxSeriesPoints) {
@@ -245,13 +293,18 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           />
         )}
 
+        {/* Static dots and values (rendered when not high-density or sampled) */}
         {renderedSeries.map((s) =>
           s.points.map((pt, ptIdx) => {
             const isHovered = activePoint?.x === pt.x && activePoint?.y === pt.y;
+            const shouldShowValue =
+              showValues &&
+              !isMultiSeries &&
+              (maxSeriesPoints <= 25 || ptIdx % Math.ceil(maxSeriesPoints / 12) === 0);
 
             return (
               <g key={`${s.id}-${ptIdx}`}>
-                {showValues && !isMultiSeries && (
+                {shouldShowValue && (
                   <text
                     x={pt.x}
                     y={pt.y - (dotRadius + 6)}
@@ -259,12 +312,13 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
                     fill="currentColor"
                     fontSize="11"
                     fontWeight="700"
+                    pointerEvents="none"
                   >
                     {valueFormatter(pt.value)}
                   </text>
                 )}
 
-                {showDots && (
+                {showDots && !isHighDensity && (
                   <circle
                     cx={pt.x}
                     cy={pt.y}
@@ -281,6 +335,31 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
             );
           })
         )}
+
+        {/* Dynamic active point highlight dot (especially vital for high-density curves) */}
+        {activePoint && (
+          <circle
+            cx={activePoint.x}
+            cy={activePoint.y}
+            r={dotRadius * 1.5}
+            fill="#fff"
+            stroke={activePoint.seriesColor || color}
+            strokeWidth={3}
+            pointerEvents="none"
+          />
+        )}
+
+        {/* Transparent overlay capturing mouse movements across chart width with O(log N) snap */}
+        <rect
+          x={pad.left}
+          y={pad.top}
+          width={chartWidth}
+          height={Math.max(0, baselineY - pad.top)}
+          fill="transparent"
+          style={{ cursor: 'crosshair' }}
+          onMouseMove={handleOverlayMouseMove}
+          onMouseLeave={handleMouseLeave}
+        />
 
         {showXAxis &&
           visibleLabels.map((lbl, idx) => (

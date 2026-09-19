@@ -90,6 +90,8 @@ export interface SvgLineChartProps extends BaseChartProps {
   gradientStartOpacity?: number;
   /** Show series legend when multiple series are provided (default: true) */
   showLegend?: boolean;
+  /** Maximum number of points to render via LTTB downsampling (default: 300, set 0 or Infinity to disable) */
+  maxDisplayPoints?: number;
   /** Callback when a point is hovered */
   onPointHover?: (point: Point | null) => void;
 }
