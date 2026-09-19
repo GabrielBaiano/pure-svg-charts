@@ -114,6 +114,19 @@ body {
   box-shadow: 0 0 16px rgba(122, 162, 247, 0.5);
 }
 
+.btn-active-stream {
+  background: #f43f5e !important;
+  color: #ffffff !important;
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.5) !important;
+  animation: pulse-stream 1.5s infinite;
+}
+
+@keyframes pulse-stream {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
 /* Scorecards Banner */
 .scorecards-grid {
   display: grid;

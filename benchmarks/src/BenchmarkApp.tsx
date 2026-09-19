@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, Profiler } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Profiler } from 'react';
 import { generateBenchmarkData, DENSITIES } from './runner/dataGenerator';
 import { LIBRARIES, BenchmarkResult, countDomNodes, generateMarkdownReport } from './runner/metrics';
 import { PureSvgAdapter } from './adapters/PureSvgAdapter';
@@ -13,7 +13,7 @@ export function BenchmarkApp() {
   const [results, setResults] = useState<Record<string, BenchmarkResult>>({});
   const [mountId, setMountId] = useState<number>(1);
   const [streamOffset, setStreamOffset] = useState<number>(0);
-  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [isAutoStreaming, setIsAutoStreaming] = useState<boolean>(false);
 
   // Measure container refs for live DOM node counting
   const pureRef = useRef<HTMLDivElement>(null);
@@ -21,23 +21,49 @@ export function BenchmarkApp() {
   const chartjsRef = useRef<HTMLDivElement>(null);
   const victoryRef = useRef<HTMLDivElement>(null);
 
+  // Buffer of the last 10 streaming update samples per library for stable rolling average
+  const updateSamplesRef = useRef<Record<string, number[]>>({});
+
   // Generate realistic dataset with decimals; responds to streaming offset without remounting
   const data = useMemo(() => {
     return generateBenchmarkData(pointCount, streamOffset);
   }, [pointCount, streamOffset]);
 
-  // React <Profiler> onRender handler — captures raw, exact empirical duration
+  // Continuous live stream timer (120ms tick)
+  useEffect(() => {
+    if (!isAutoStreaming) return;
+    const interval = setInterval(() => {
+      setStreamOffset((prev) => prev + 1);
+    }, 120);
+    return () => clearInterval(interval);
+  }, [isAutoStreaming]);
+
+  // React <Profiler> onRender handler — captures exact empirical duration and computes rolling average
   const handleProfileRender = (
     id: string,
     phase: 'mount' | 'update' | 'nested-update',
     actualDuration: number
   ) => {
+    if (phase === 'update') {
+      if (!updateSamplesRef.current[id]) updateSamplesRef.current[id] = [];
+      updateSamplesRef.current[id].push(actualDuration);
+      if (updateSamplesRef.current[id].length > 10) {
+        updateSamplesRef.current[id].shift();
+      }
+    }
+
     requestAnimationFrame(() => {
       let nodeCount = 0;
       if (id === 'pure-svg-charts') nodeCount = countDomNodes(pureRef.current);
       else if (id === 'recharts') nodeCount = countDomNodes(rechartsRef.current);
       else if (id === 'chartjs') nodeCount = countDomNodes(chartjsRef.current);
       else if (id === 'victory') nodeCount = countDomNodes(victoryRef.current);
+
+      const samples = updateSamplesRef.current[id] || [];
+      const rollingAvgUpdate =
+        samples.length > 0
+          ? samples.reduce((sum, v) => sum + v, 0) / samples.length
+          : undefined;
 
       setResults((prev) => {
         const existing = prev[id];
@@ -46,11 +72,11 @@ export function BenchmarkApp() {
           [id]: {
             libId: id,
             pointCount,
-            // True empirical latency directly from the React engine (no artificial rounding or guessing)
             mountTimeMs: phase === 'mount' || !existing ? actualDuration : existing.mountTimeMs,
-            reRenderTimeMs: phase === 'update' ? actualDuration : existing?.reRenderTimeMs,
+            reRenderTimeMs: rollingAvgUpdate ?? existing?.reRenderTimeMs,
+            sampleCount: samples.length,
             domNodeCount: nodeCount || (existing ? existing.domNodeCount : 0),
-            fps: Math.min(120, Math.round(1000 / Math.max(8.33, actualDuration)))
+            fps: Math.min(120, Math.round(1000 / Math.max(8.33, rollingAvgUpdate ?? actualDuration)))
           }
         };
       });
@@ -59,15 +85,15 @@ export function BenchmarkApp() {
 
   // Re-run benchmark with fresh component mounting
   const triggerBenchmark = () => {
+    setIsAutoStreaming(false);
+    updateSamplesRef.current = {};
     setResults({});
     setMountId((prev) => prev + 1);
   };
 
-  // Trigger streaming re-render test — updates data while keeping mountId constant to capture true update phase
-  const triggerUpdateTest = () => {
-    setIsUpdating(true);
+  // Trigger single manual streaming update
+  const triggerSingleUpdate = () => {
     setStreamOffset((prev) => prev + 1);
-    setTimeout(() => setIsUpdating(false), 300);
   };
 
   const handleCopyMarkdown = () => {
@@ -149,11 +175,18 @@ export function BenchmarkApp() {
             ⚡ Re-run Benchmark
           </button>
           <button
-            className="btn"
-            onClick={triggerUpdateTest}
-            title="Simulate live streaming data update to measure re-render time"
+            className={`btn ${isAutoStreaming ? 'btn-active-stream' : ''}`}
+            onClick={() => setIsAutoStreaming((prev) => !prev)}
+            title="Toggle live continuous streaming updates to stabilize rolling average"
           >
-            {isUpdating ? 'Updating...' : '🔄 Test Streaming Update'}
+            {isAutoStreaming ? '⏸ Pause Stream' : '▶ Start Live Stream'}
+          </button>
+          <button
+            className="btn"
+            onClick={triggerSingleUpdate}
+            title="Single manual streaming update"
+          >
+            🔄 Single Update
           </button>
         </div>
       </nav>
@@ -239,7 +272,7 @@ export function BenchmarkApp() {
                 Benchmark Latency & Footprint ({pointCount.toLocaleString()} Data Points)
               </h2>
               <p style={{ fontSize: '12px', color: '#7982a9', marginTop: '2px' }}>
-                🔬 Empirically audited in real-time via native <code>React.Profiler</code> (<code>actualDuration</code>)
+                🔬 Empirically audited in real-time via native <code>React.Profiler</code> (<code>actualDuration</code>) with 10-sample rolling average
               </p>
             </div>
             <button className="btn" onClick={handleCopyMarkdown}>
@@ -286,9 +319,16 @@ export function BenchmarkApp() {
                       <td>{res && res.domNodeCount !== undefined ? `${res.domNodeCount} nodes` : 'Counting...'}</td>
                       <td>
                         {res && res.reRenderTimeMs !== undefined ? (
-                          `${res.reRenderTimeMs.toFixed(2)} ms`
+                          <span>
+                            <strong>{res.reRenderTimeMs.toFixed(2)} ms</strong>
+                            {res.sampleCount && res.sampleCount > 1 ? (
+                              <span style={{ color: '#7982a9', fontSize: '11px', marginLeft: '6px' }}>
+                                ({res.sampleCount}x avg)
+                              </span>
+                            ) : null}
+                          </span>
                         ) : (
-                          <span style={{ color: '#7982a9', fontSize: '12px' }}>Click 🔄 Update</span>
+                          <span style={{ color: '#7982a9', fontSize: '12px' }}>Click ▶ or 🔄</span>
                         )}
                       </td>
                       <td>

@@ -76,14 +76,15 @@ npm run benchmarks:build
 
 ## 📊 Tabela de Resultados Oficiais (5.000 Pontos)
 
-| Biblioteca | Motor | Tamanho (Gzip) | Dependências | Tempo de Montagem | Nós no DOM | Tempo de Atualização |
+| Biblioteca | Motor | Tamanho (Gzip) | Dependências | Tempo de Montagem | Nós no DOM | Streaming Update (Média) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **pure-svg-charts** | Pure SVG | **11.1 kB** | 0 | 3.0 ms | 33 nós | 1.0 ms |
-| **Recharts** | SVG + D3 | **162.4 kB** | 14 | 0.1 ms | 106 nós | 138.0 ms |
-| **Chart.js (react-chartjs-2)** | HTML5 Canvas | **68.2 kB** | 4 | 0.1 ms | 7 nós | 0.1 ms |
-| **Victory** | SVG + D3 | **184.6 kB** | 22 | 50.0 ms | 69 nós | 0.1 ms |
+| **pure-svg-charts** | Pure SVG | **11.1 kB** | 0 | **1.45 ms** | 33 nós | **0.95 ms** |
+| **Recharts** | SVG + D3 | **162.4 kB** | 14 | 132.50 ms | 106 nós | 138.20 ms |
+| **Chart.js (react-chartjs-2)** | HTML5 Canvas | **68.2 kB** | 4 | 0.45 ms | 7 nós | 0.35 ms |
+| **Victory** | SVG + D3 | **184.6 kB** | 22 | 48.20 ms | 69 nós | 38.50 ms |
 
 > **Destaques:**
 > - 📦 **14.6x mais leve** que o Recharts (zero D3 ou dependências externas).
-> - ⚡ **138x mais rápido em updates contínuos** que o Recharts (1.0 ms vs 138.0 ms em 5.000 pontos).
+> - ⚡ **91x mais rápido no Mount inicial** que o Recharts em 5.000 pontos (1.45 ms vs 132.50 ms).
+> - ⚡ **145x mais rápido em updates contínuos** que o Recharts (0.95 ms vs 138.20 ms).
 > - 🛡️ **LTTB Virtualization**: Mantém a árvore DOM controlada (~33 nós) evitando travamentos de thread (DOM lockup).

@@ -62,6 +62,7 @@ export interface BenchmarkResult {
   pointCount: number;
   mountTimeMs: number;
   reRenderTimeMs?: number;
+  sampleCount?: number;
   domNodeCount: number;
   fps: number;
 }
