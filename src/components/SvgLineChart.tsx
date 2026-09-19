@@ -160,9 +160,11 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
 
   const handleOverlayMouseMove = (e: React.MouseEvent<SVGRectElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    if (!rect.width) return;
+    if (!rect.width || !rect.height) return;
     const clientX = e.clientX - rect.left;
+    const clientY = e.clientY - rect.top;
     const svgX = pad.left + (clientX / rect.width) * chartWidth;
+    const svgY = pad.top + (clientY / rect.height) * (baselineY - pad.top);
 
     let closestPt: Point | null = null;
     let closestDist = Infinity;
@@ -184,7 +186,13 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
         Math.abs(s.points[i0].x - svgX) < Math.abs(s.points[i1].x - svgX)
           ? s.points[i0]
           : s.points[i1];
-      const dist = Math.abs(cand.x - svgX);
+
+      // 2D distance ensures that in multi-series charts, vertical cursor position
+      // accurately selects the closest line instead of always picking the first one
+      const dx = cand.x - svgX;
+      const dy = cand.y - svgY;
+      const dist = dx * dx + dy * dy;
+
       if (dist < closestDist) {
         closestDist = dist;
         closestPt = cand;
@@ -370,8 +378,8 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
             })
           )}
 
-        {/* Dynamic active point highlight dot (especially vital for high-density curves) */}
-        {activePoint && (
+        {/* Dynamic active point highlight dot (used when static dots are hidden) */}
+        {(isHighDensity || !showDots) && activePoint && (
           <circle
             cx={activePoint.x}
             cy={activePoint.y}
@@ -383,17 +391,19 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           />
         )}
 
-        {/* Transparent overlay capturing mouse movements across chart width with O(log N) snap */}
-        <rect
-          x={pad.left}
-          y={pad.top}
-          width={chartWidth}
-          height={Math.max(0, baselineY - pad.top)}
-          fill="transparent"
-          style={{ cursor: 'crosshair' }}
-          onMouseMove={handleOverlayMouseMove}
-          onMouseLeave={handleMouseLeave}
-        />
+        {/* Transparent overlay capturing mouse movements (active in high-density or when dots are hidden) */}
+        {(isHighDensity || !showDots) && (
+          <rect
+            x={pad.left}
+            y={pad.top}
+            width={chartWidth}
+            height={Math.max(0, baselineY - pad.top)}
+            fill="transparent"
+            style={{ cursor: 'crosshair' }}
+            onMouseMove={handleOverlayMouseMove}
+            onMouseLeave={handleMouseLeave}
+          />
+        )}
 
         {showXAxis &&
           visibleLabels.map((lbl, idx) => (
