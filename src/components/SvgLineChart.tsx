@@ -289,6 +289,14 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     }
 
     if (closestPt) {
+      if (
+        activePoint &&
+        activePoint.x === closestPt.x &&
+        activePoint.y === closestPt.y &&
+        activePoint.seriesName === closestSeriesName
+      ) {
+        return;
+      }
       handleMouseEnter(closestPt, closestSeriesName, closestSeriesColor);
     }
   };

@@ -99,11 +99,11 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     return Math.max(0, ...normalizedSeries.map((s) => s.data.length));
   }, [normalizedSeries]);
 
-  const categoryLabels = useMemo(() => {
-    const ref = normalizedSeries.find((s) => s.data.some((d) => d.label)) || normalizedSeries[0];
-    if (!ref) return [];
-    return Array.from({ length: categoryCount }, (_, i) => ref.data[i]?.label || `#${i + 1}`);
-  }, [normalizedSeries, categoryCount]);
+  const refSeries = useMemo(
+    () => normalizedSeries.find((s) => s.data.some((d) => d.label)) || normalizedSeries[0],
+    [normalizedSeries]
+  );
+  const getCategoryLabel = (idx: number) => refSeries?.data[idx]?.label || `#${idx + 1}`;
 
   const { minVal, maxVal, categoryPosTotals, categoryNegTotals } = useMemo(() => {
     if (categoryCount === 0) return { minVal: 0, maxVal: 1, categoryPosTotals: [], categoryNegTotals: [] };
@@ -246,7 +246,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
             rx: segRx,
             path: segPath,
             value: val,
-            label: categoryLabels[catIdx],
+            label: getCategoryLabel(catIdx),
             seriesName: s.name,
             seriesColor: segColor,
             stackTotal,
@@ -291,7 +291,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
             rx,
             path: segPath,
             value: val,
-            label: categoryLabels[catIdx],
+            label: getCategoryLabel(catIdx),
             seriesName: s.name,
             seriesColor: segColor
           });
@@ -332,7 +332,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
           rx,
           path: segPath,
           value: val,
-          label: item?.label || categoryLabels[catIdx],
+          label: item?.label || getCategoryLabel(catIdx),
           seriesName: s.name,
           seriesColor: segColor
         });
@@ -340,24 +340,43 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     }
 
     return segments;
-  }, [categoryCount, isMultiSeries, stacked, stackGap, normalizedSeries, categoryPosTotals, categoryNegTotals, pad.left, pad.top, slotWidth, barOffset, barWidth, baselineY, zeroY, valueRange, chartHeight, radius, categoryLabels, negativeColor]);
+  }, [categoryCount, isMultiSeries, stacked, stackGap, normalizedSeries, categoryPosTotals, categoryNegTotals, pad.left, pad.top, slotWidth, barOffset, barWidth, baselineY, zeroY, valueRange, chartHeight, radius, refSeries, negativeColor]);
 
   const visibleLabelIndices = useMemo(() => {
-    if (!categoryLabels.length) return new Set<number>();
+    if (!categoryCount) return new Set<number>();
     const maxLabels = Math.min(8, Math.max(2, Math.floor(chartWidth / 55)));
-    const sampled = getSampledLabelIndices(categoryLabels.length, maxLabels);
-    return new Set(Array.from(sampled));
-  }, [categoryLabels, chartWidth]);
+    return getSampledLabelIndices(categoryCount, maxLabels);
+  }, [categoryCount, chartWidth]);
 
   const transitionStyle = animated
     ? { transition: 'y 0.45s cubic-bezier(0.4, 0, 0.2, 1), height 0.45s cubic-bezier(0.4, 0, 0.2, 1)' }
     : undefined;
 
+  const activeSegment = useMemo(
+    () => (hoveredKey ? renderedSegments.find((seg) => seg.key === hoveredKey) || null : null),
+    [hoveredKey, renderedSegments]
+  );
+
+  const handleBarEnter = (seg: RenderedBarSegment) => {
+    if (hoveredKey === seg.key) return;
+    setHoveredKey(seg.key);
+    onBarHover?.({
+      value: seg.value,
+      index: seg.catIdx,
+      label: seg.label,
+      seriesName: seg.seriesName
+    });
+  };
+
+  const handleBarLeave = () => {
+    if (hoveredKey === null) return;
+    setHoveredKey(null);
+    onBarHover?.(null);
+  };
+
   if (categoryCount === 0) {
     return <ChartEmpty height={height} className={className} style={containerStyle} />;
   }
-
-  const activeSegment = renderedSegments.find((seg) => seg.key === hoveredKey) || null;
 
   return (
     <div className={`pure-svg-chart-container ${className}`} style={containerStyle}>
@@ -437,27 +456,16 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
                 opacity={isHovered ? 1 : 0.88}
                 filter={glow ? `url(#${glowId})` : undefined}
                 style={{ ...transitionStyle, cursor: 'pointer' }}
-                onMouseEnter={() => {
-                  setHoveredKey(seg.key);
-                  onBarHover?.({
-                    value: seg.value,
-                    index: seg.catIdx,
-                    label: seg.label,
-                    seriesName: seg.seriesName
-                  });
-                }}
-                onMouseLeave={() => {
-                  setHoveredKey(null);
-                  onBarHover?.(null);
-                }}
+                onMouseEnter={() => handleBarEnter(seg)}
+                onMouseLeave={handleBarLeave}
               />
             </g>
           );
         })}
 
         {showXAxis &&
-          categoryLabels.map((lbl, catIdx) => {
-            if (!visibleLabelIndices.has(catIdx)) return null;
+          Array.from(visibleLabelIndices).map((catIdx) => {
+            const lbl = getCategoryLabel(catIdx);
             const x = pad.left + catIdx * slotWidth + slotWidth / 2;
             return (
               <text

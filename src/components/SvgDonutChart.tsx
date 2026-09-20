@@ -66,6 +66,7 @@ export const SvgDonutChart: React.FC<SvgDonutChartProps> = ({
   }, [cleanData, total, circumference, strokeWidth]);
 
   const setHover = (idx: number | null) => {
+    if (hoveredIdx === idx) return;
     setHoveredIdx(idx);
     onSliceHover?.(idx !== null ? cleanData[idx] : null);
   };

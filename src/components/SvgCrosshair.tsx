@@ -13,7 +13,7 @@ export interface SvgCrosshairProps {
   dotRadius?: number;
 }
 
-export const SvgCrosshair: React.FC<SvgCrosshairProps> = ({
+export const SvgCrosshair: React.FC<SvgCrosshairProps> = React.memo(({
   x,
   y,
   baselineY,
@@ -52,4 +52,4 @@ export const SvgCrosshair: React.FC<SvgCrosshairProps> = ({
       </g>
     </g>
   );
-};
+});

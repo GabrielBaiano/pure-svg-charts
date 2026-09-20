@@ -94,7 +94,7 @@ export const ChartHeader: React.FC<{
   metric?: string;
   color?: string;
   marginBottom?: number | string;
-}> = ({ title, subtitle, metric, color, marginBottom = 14 }) => {
+}> = React.memo(({ title, subtitle, metric, color, marginBottom = 14 }) => {
   if (!title && !metric && !subtitle) return null;
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom, gap: 8 }}>
@@ -105,9 +105,9 @@ export const ChartHeader: React.FC<{
       {metric && <div style={{ fontSize: 18, fontWeight: 800, color, textAlign: 'right' }}>{metric}</div>}
     </div>
   );
-};
+});
 
-export const ChartEmpty: React.FC<{ height: number; className?: string; style?: React.CSSProperties }> = ({
+export const ChartEmpty: React.FC<{ height: number; className?: string; style?: React.CSSProperties }> = React.memo(({
   height,
   className = '',
   style
@@ -126,14 +126,14 @@ export const ChartEmpty: React.FC<{ height: number; className?: string; style?: 
   >
     No data to display
   </div>
-);
+));
 
 export const ChartTooltip: React.FC<{
   xPercent: number;
   yPercent: number;
   borderColor?: string;
   children: React.ReactNode;
-}> = ({ xPercent, yPercent, borderColor = '#334155', children }) => (
+}> = React.memo(({ xPercent, yPercent, borderColor = '#334155', children }) => (
   <div
     style={{
       position: 'absolute',
@@ -155,7 +155,7 @@ export const ChartTooltip: React.FC<{
   >
     {children}
   </div>
-);
+));
 
 export const ChartGrid: React.FC<{
   showGrid?: boolean;
@@ -169,7 +169,7 @@ export const ChartGrid: React.FC<{
   valueFormatter: (val: number) => string;
   showZeroLine?: boolean;
   zeroY?: number;
-}> = ({
+}> = React.memo(({
   showGrid = true,
   showYAxis = true,
   gridLines = 4,
@@ -231,10 +231,10 @@ export const ChartGrid: React.FC<{
       )}
     </g>
   );
-};
+});
 
-export const ChartGlowFilter: React.FC<{ id: string; color: string }> = ({ id, color }) => (
+export const ChartGlowFilter: React.FC<{ id: string; color: string }> = React.memo(({ id, color }) => (
   <filter id={id} x="-50%" y="-50%" width="200%" height="200%">
     <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor={color} floodOpacity="0.75" />
   </filter>
-);
+));
