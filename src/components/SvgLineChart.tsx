@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { generateAreaPath, generateLinePath, generateStackedAreaPath } from '../core/bezier';
+import { normalizeChartInput } from '../core/data';
 import { downsampleLTTB } from '../core/lttb';
 import { getSampledLabelIndices, scaleDataToPoints } from '../core/scale';
 import { DataValue, Point, SvgLineChartProps } from '../core/types';
@@ -10,6 +11,7 @@ import {
   ChartHeader,
   DEFAULT_PALETTE,
   fullSvgStyle,
+  srOnlyStyle,
   useChartBase
 } from './ChartCommon';
 import { SvgCrosshair } from './SvgCrosshair';
@@ -35,8 +37,10 @@ interface RenderedLineSeries {
 
 export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
   const {
-    data,
-    series,
+    data: rawData,
+    series: userSeries,
+    x,
+    y,
     curvature = 0.25,
     showDots = true,
     dotRadius: userDotRadius,
@@ -66,6 +70,8 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     uid,
     glowId,
     containerStyle,
+    containerRef,
+    ariaLabel,
     showGrid,
     gridLines,
     showXAxis,
@@ -84,7 +90,6 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
 
   const [activePoint, setActivePoint] = useState<HoveredSeriesPoint | null>(null);
   const [isPinned, setIsPinned] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isPinned) return;
@@ -99,11 +104,21 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     return () => {
       document.removeEventListener('pointerdown', handleOutside);
     };
-  }, [isPinned, onPointHover]);
+  }, [isPinned, onPointHover, containerRef]);
+
+  const normalizedInput = useMemo(() => {
+    return normalizeChartInput({
+      data: rawData,
+      series: userSeries,
+      x,
+      y,
+      defaultPalette: DEFAULT_PALETTE
+    });
+  }, [rawData, userSeries, x, y]);
 
   const normalizedSeries = useMemo(() => {
-    if (series && series.length > 0) {
-      return series.map((s, idx) => ({
+    if (normalizedInput.series && normalizedInput.series.length > 0) {
+      return normalizedInput.series.map((s, idx) => ({
         id: s.id || `s-${idx}`,
         name: s.name || `Series ${idx + 1}`,
         data: s.data || [],
@@ -117,16 +132,16 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
       {
         id: 'def',
         name: 'Default',
-        data: data || [],
+        data: normalizedInput.data || [],
         color,
         strokeWidth,
         strokeDasharray,
         fillGradient
       }
     ];
-  }, [series, data, color, strokeWidth, strokeDasharray, fillGradient]);
+  }, [normalizedInput, color, strokeWidth, strokeDasharray, fillGradient]);
 
-  const isMultiSeries = Boolean(series && series.length > 1);
+  const isMultiSeries = normalizedInput.isMultiSeries;
 
   // Prepare series data with cumulative stacking only when stacked is true
   const stackedSeriesData = useMemo(() => {
@@ -335,6 +350,40 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     resolveClosestPoint(svgX, svgY);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<SVGSVGElement>) => {
+    const pts = renderedSeries[0]?.points || [];
+    if (!pts.length) return;
+
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setIsPinned(true);
+      const currentIdx = activePoint ? pts.findIndex((p) => p.x === activePoint.x && p.y === activePoint.y) : -1;
+      const nextIdx = currentIdx < pts.length - 1 ? currentIdx + 1 : 0;
+      const nextPt = pts[nextIdx];
+      handleMouseEnter(nextPt, renderedSeries[0].name, renderedSeries[0].color);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setIsPinned(true);
+      const currentIdx = activePoint ? pts.findIndex((p) => p.x === activePoint.x && p.y === activePoint.y) : -1;
+      const prevIdx = currentIdx > 0 ? currentIdx - 1 : pts.length - 1;
+      const prevPt = pts[prevIdx];
+      handleMouseEnter(prevPt, renderedSeries[0].name, renderedSeries[0].color);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      setIsPinned(true);
+      handleMouseEnter(pts[0], renderedSeries[0].name, renderedSeries[0].color);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      setIsPinned(true);
+      handleMouseEnter(pts[pts.length - 1], renderedSeries[0].name, renderedSeries[0].color);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsPinned(false);
+      setActivePoint(null);
+      onPointHover?.(null);
+    }
+  };
+
   if (!maxSeriesPoints) {
     return <ChartEmpty height={height} className={className} style={containerStyle} />;
   }
@@ -369,7 +418,14 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
       )}
 
       <div style={{ position: 'relative', width: '100%', touchAction: 'pan-y' }}>
-        <svg viewBox={`0 0 ${width} ${height}`} style={fullSvgStyle}>
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          style={fullSvgStyle}
+          tabIndex={0}
+          role="img"
+          aria-label={ariaLabel}
+          onKeyDown={handleKeyDown}
+        >
         <defs>
           {renderedSeries.map((s) =>
             s.fillGradient ? (
@@ -623,6 +679,13 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           })}
         </div>
       )}
+
+      {/* Visually hidden live region announcing active point for assistive technologies */}
+      <div style={srOnlyStyle} aria-live="polite" aria-atomic="true">
+        {activePoint
+          ? `${activePoint.seriesName && isMultiSeries ? `${activePoint.seriesName}: ` : ''}${activePoint.label ? `${activePoint.label}, ` : ''}${valueFormatter(activePoint.originalValue !== undefined ? activePoint.originalValue : activePoint.value)}`
+          : ''}
+      </div>
       </div>
     </div>
   );

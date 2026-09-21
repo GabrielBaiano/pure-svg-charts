@@ -79,15 +79,15 @@ This document outlines the strategic improvement roadmap, upcoming features, and
 
 ## ♿ Priority 5 (P5): Enterprise Accessibility (a11y / WCAG 2.1 & ADA Compliance)
 
-- [ ] **Accessible SVG Semantics:**
-  - [ ] Include `role="img"` on root `<svg>`.
-  - [ ] Dynamically inject `<title>` and `<desc>` elements for screen readers.
-- [ ] **Full Keyboard Navigation:**
-  - [ ] Support `tabIndex={0}` to allow keyboard focus on chart elements.
-  - [ ] Enable navigating data points using $\leftarrow$ and $\rightarrow$ arrow keys.
-  - [ ] Trigger tooltips and announce active point metrics via `aria-live="polite"`.
-- [ ] **High-Contrast Conformance:**
-  - [ ] Guarantee WCAG AA color contrast ratios (minimum 4.5:1 between axes, background, and series lines).
+- [x] **Accessible SVG Semantics:**
+  - [x] Include `role="img"` on root `<svg>`.
+  - [x] Include accessible `aria-label` and `aria-atomic` for screen readers.
+- [x] **Full Keyboard Navigation:**
+  - [x] Support `tabIndex={0}` to allow keyboard focus on chart elements.
+  - [x] Enable navigating data points using $\leftarrow$ and $\rightarrow$ arrow keys.
+  - [x] Trigger tooltips and announce active point metrics via `aria-live="polite"`.
+- [x] **High-Contrast Conformance:**
+  - [x] Guarantee WCAG AA color contrast ratios (minimum 4.5:1 between axes, background, and series lines).
 
 ---
 
@@ -100,11 +100,13 @@ This document outlines the strategic improvement roadmap, upcoming features, and
   - [x] Unit tests for LTTB downsampling accuracy (`lttb.test.ts`).
   - [x] Unit tests for Bézier curve mathematics (`bezier.test.ts`).
   - [x] Unit tests for scaling and coordinates (`scale.test.ts`).
-  - [x] Component tests for Line and Bar charts with touch and custom tooltips.
+  - [x] Unit tests for raw object data ingestion (`data.test.ts`).
+  - [x] Unit tests for image export utility (`export.test.ts`).
+  - [x] Component tests for Line and Bar charts with touch, keyboard a11y, and custom tooltips.
 - [x] **Continuous Integration (GitHub Actions):**
   - [x] Add `.github/workflows/ci.yml` verifying TypeScript compilation, linting, and automated tests on every Pull Request.
-- [ ] **Image Export Utility:**
-  - [ ] Helper utility `exportChartAsImage(svgRef, 'png' | 'svg', filename)` enabling users to easily build "Download Chart" buttons.
+- [x] **Image Export Utility:**
+  - [x] Helper utility `exportChartAsImage(svgRef, 'png' | 'svg', filename)` enabling users to easily build "Download Chart" buttons.
 
 ---
 
@@ -116,5 +118,5 @@ This document outlines the strategic improvement roadmap, upcoming features, and
 | **P2** | Custom Tooltip (React Portal / HTML) | ✅ Completed |
 | **P3** | Combo Chart, Horizontal Bars & Scatter | ⏳ Planned |
 | **P4** | Continuous Time-Series Scales | ⏳ Planned |
-| **P5** | Accessibility (a11y / WCAG) | ⏳ Planned |
-| **P6** | Tree-Shaking, Vitest & CI | 🚀 In Progress (Tree-shaking, Vitest & CI done) |
+| **P5** | Accessibility (a11y / WCAG) | ✅ Completed |
+| **P6** | Tree-Shaking, Vitest & CI | ✅ Completed |

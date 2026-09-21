@@ -72,4 +72,54 @@ describe('<SvgBarChart />', () => {
     fireEvent.pointerDown(document.body);
     expect(container.querySelector('[data-testid="custom-tooltip"]')).toBeNull();
   });
+
+  it('supports keyboard navigation via ArrowRight, ArrowLeft, and Escape', () => {
+    const onBarHover = vi.fn();
+    const { container } = render(
+      <SvgBarChart
+        data={sampleData}
+        onBarHover={onBarHover}
+        renderTooltip={({ item }) => <div>Bar {item.label}</div>}
+      />
+    );
+
+    const svg = container.querySelector('svg');
+    expect(svg).toBeTruthy();
+
+    // ArrowRight to select first bar
+    fireEvent.keyDown(svg!, { key: 'ArrowRight' });
+    expect(container.querySelector('[data-testid="custom-tooltip"]')?.textContent).toContain('Bar A');
+
+    // ArrowRight to select second bar
+    fireEvent.keyDown(svg!, { key: 'ArrowRight' });
+    expect(container.querySelector('[data-testid="custom-tooltip"]')?.textContent).toContain('Bar B');
+
+    // ArrowLeft to go back to first bar
+    fireEvent.keyDown(svg!, { key: 'ArrowLeft' });
+    expect(container.querySelector('[data-testid="custom-tooltip"]')?.textContent).toContain('Bar A');
+
+    // Escape to dismiss
+    fireEvent.keyDown(svg!, { key: 'Escape' });
+    expect(container.querySelector('[data-testid="custom-tooltip"]')).toBeNull();
+  });
+
+  it('supports direct data ingestion with x and y props', () => {
+    const rawData = [
+      { product: 'Shoes', sales: 300 },
+      { product: 'Shirts', sales: 500 }
+    ];
+
+    const { container } = render(
+      <SvgBarChart
+        data={rawData}
+        x="product"
+        y="sales"
+      />
+    );
+
+    const svg = container.querySelector('svg');
+    expect(svg).toBeTruthy();
+    expect(container.querySelectorAll('path[style*="cursor: pointer"]').length).toBe(2);
+  });
 });
+

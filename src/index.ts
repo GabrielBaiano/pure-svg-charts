@@ -7,6 +7,9 @@ export { ResponsiveContainer, useParentSize } from './components/ResponsiveConta
 export { scaleDataToPoints, getSampledLabelIndices } from './core/scale';
 export { generateLinePath, generateAreaPath, generateStackedAreaPath, generateBarPath } from './core/bezier';
 export { downsampleLTTB } from './core/lttb';
+export { normalizeChartInput } from './core/data';
+export { exportChartAsImage } from './core/export';
 export { CHART_VARIANTS } from './core/variants';
 export * from './core/types';
+
 

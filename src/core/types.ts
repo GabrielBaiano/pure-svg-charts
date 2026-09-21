@@ -58,6 +58,14 @@ export interface BaseChartProps {
   showZeroLine?: boolean;
   /** Render chart in a themed card container with background, border, and padding (default: true). Set to false to render flush inside custom containers without double borders. */
   card?: boolean;
+  /** Automatically measure parent container and resize width/height dynamically via ResizeObserver (default: false) */
+  responsive?: boolean;
+  /** Accessible label for the chart region/SVG (default: title or 'Interactive chart') */
+  ariaLabel?: string;
+  /** Key in data records representing the X-axis label/index (e.g. 'date', 'month') */
+  x?: string;
+  /** Key (or array of keys) representing series values (e.g. 'revenue' or ['revenue', 'expenses']) */
+  y?: string | string[];
   /** Custom CSS class names */
   className?: string;
   /** Inline styles for the outer container */
@@ -75,8 +83,8 @@ export interface LineSeries {
 }
 
 export interface SvgLineChartProps extends BaseChartProps {
-  /** Array of numbers or { value, label } (used for single series) */
-  data?: DataValue[];
+  /** Array of numbers, { value, label }, or arbitrary object records when x and y are provided */
+  data?: any[];
   /** Multiple series configuration for multi-line charts */
   series?: LineSeries[];
   /** Stroke width in pixels (default: 3) */
@@ -135,8 +143,8 @@ export interface BarTooltipProps {
 }
 
 export interface SvgBarChartProps extends BaseChartProps {
-  /** Array of numbers or { value, label } (single series) */
-  data?: DataValue[];
+  /** Array of numbers, { value, label }, or arbitrary object records when x and y are provided */
+  data?: any[];
   /** Multiple series configuration for stacked or grouped bar charts */
   series?: BarSeries[];
   /** Whether multi-series bars are stacked vertically (default: true when series is present) */
@@ -241,3 +249,11 @@ export interface ResponsiveContainerProps {
   /** Child chart component or function returning child with measured dimensions */
   children: React.ReactElement | ((dims: { width: number; height: number }) => React.ReactElement);
 }
+
+export interface ExportImageOptions {
+  /** Resolution multiplier for PNG rendering (default: 2 for Retina crispness) */
+  scale?: number;
+  /** Optional background color (e.g. '#0f172a' or '#ffffff', default: transparent) */
+  background?: string;
+}
+

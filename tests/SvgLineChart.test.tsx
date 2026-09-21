@@ -76,4 +76,57 @@ describe('<SvgLineChart />', () => {
     fireEvent.pointerDown(document.body);
     expect(container.querySelector('[data-testid="custom-tooltip"]')).toBeNull();
   });
+
+  it('supports keyboard navigation via ArrowRight, ArrowLeft, and Escape', () => {
+    const onPointHover = vi.fn();
+    const { container } = render(
+      <SvgLineChart
+        data={sampleData}
+        onPointHover={onPointHover}
+        renderTooltip={({ point }) => <div>Point {point.label}</div>}
+      />
+    );
+
+    const svg = container.querySelector('svg');
+    expect(svg).toBeTruthy();
+
+    // Press ArrowRight to select first point
+    fireEvent.keyDown(svg!, { key: 'ArrowRight' });
+    expect(container.querySelector('[data-testid="custom-tooltip"]')?.textContent).toContain('Point Jan');
+
+    // Press ArrowRight again to move to next point
+    fireEvent.keyDown(svg!, { key: 'ArrowRight' });
+    expect(container.querySelector('[data-testid="custom-tooltip"]')?.textContent).toContain('Point Feb');
+
+    // Press ArrowLeft to move back
+    fireEvent.keyDown(svg!, { key: 'ArrowLeft' });
+    expect(container.querySelector('[data-testid="custom-tooltip"]')?.textContent).toContain('Point Jan');
+
+    // Press Escape to dismiss
+    fireEvent.keyDown(svg!, { key: 'Escape' });
+    expect(container.querySelector('[data-testid="custom-tooltip"]')).toBeNull();
+  });
+
+  it('supports direct data ingestion with x and y props', () => {
+    const rawApiData = [
+      { date: 'Q1', sales: 120, expenses: 80 },
+      { date: 'Q2', sales: 240, expenses: 140 }
+    ];
+
+    const { container } = render(
+      <SvgLineChart
+        data={rawApiData}
+        x="date"
+        y={['sales', 'expenses']}
+      />
+    );
+
+    const svg = container.querySelector('svg');
+    expect(svg).toBeTruthy();
+
+    // Should render two series paths
+    const paths = container.querySelectorAll('path[stroke]');
+    expect(paths.length).toBeGreaterThanOrEqual(2);
+  });
 });
+

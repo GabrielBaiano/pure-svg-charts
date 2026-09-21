@@ -1,9 +1,21 @@
-import React, { useId } from 'react';
+import React, { useId, useRef, useState, useEffect } from 'react';
 import { ChartPadding, DataValue } from '../core/types';
 import { CHART_VARIANTS, ChartVariant } from '../core/variants';
 
 export const DEFAULT_PADDING: ChartPadding = { top: 24, right: 24, bottom: 34, left: 48 };
 export const DEFAULT_PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6'];
+
+export const srOnlyStyle: React.CSSProperties = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  padding: 0,
+  margin: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
+  border: 0
+};
 
 export const toCleanData = (data: DataValue[] = []): { value: number; label?: string }[] => {
   if (!data || data.length === 0) return [];
@@ -34,8 +46,55 @@ export function useChartBase(props: any) {
   const preset = CHART_VARIANTS[v] || CHART_VARIANTS.default;
   const color = props.color ?? preset.color;
   const pad: ChartPadding = { ...DEFAULT_PADDING, ...props.padding };
-  const width = props.width ?? 500;
-  const height = props.height ?? 220;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [measuredSize, setMeasuredSize] = useState<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    if (!props.responsive) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      const w = Math.floor(rect.width);
+      const h = Math.floor(rect.height);
+      if (w > 0) {
+        setMeasuredSize((prev) => {
+          const nextH = h > 0 ? h : (props.height ?? 220);
+          if (prev?.width === w && prev?.height === nextH) return prev;
+          return { width: w, height: nextH };
+        });
+      }
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure);
+      return () => window.removeEventListener('resize', measure);
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      if (!entries.length) return;
+      const { width: w, height: h } = entries[0].contentRect;
+      const floorW = Math.floor(w);
+      const floorH = Math.floor(h);
+      if (floorW > 0) {
+        setMeasuredSize((prev) => {
+          const nextH = floorH > 0 ? floorH : (props.height ?? 220);
+          if (prev?.width === floorW && prev?.height === nextH) return prev;
+          return { width: floorW, height: nextH };
+        });
+      }
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [props.responsive, props.height]);
+
+  const width = measuredSize?.width ?? props.width ?? 500;
+  const height = measuredSize?.height ?? props.height ?? 220;
   const chartWidth = Math.max(1, width - pad.left - pad.right);
   const chartHeight = Math.max(1, height - pad.top - pad.bottom);
   const baselineY = height - pad.bottom;
@@ -63,6 +122,8 @@ export function useChartBase(props: any) {
     ...props.style
   };
 
+  const ariaLabel = props.ariaLabel || props.title || 'Interactive chart';
+
   return {
     preset,
     color,
@@ -76,6 +137,8 @@ export function useChartBase(props: any) {
     uid,
     glowId,
     containerStyle,
+    containerRef,
+    ariaLabel,
     card: isCard,
     showGrid: props.showGrid ?? preset.showGrid ?? true,
     gridLines: props.gridLines ?? preset.gridLines ?? 4,

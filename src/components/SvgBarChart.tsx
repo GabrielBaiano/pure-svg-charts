@@ -1,6 +1,7 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { getSampledLabelIndices } from '../core/scale';
 import { generateBarPath } from '../core/bezier';
+import { normalizeChartInput } from '../core/data';
 import { SvgBarChartProps } from '../core/types';
 import {
   ChartEmpty,
@@ -9,6 +10,7 @@ import {
   ChartHeader,
   DEFAULT_PALETTE,
   fullSvgStyle,
+  srOnlyStyle,
   toCleanData,
   useChartBase
 } from './ChartCommon';
@@ -34,8 +36,10 @@ interface RenderedBarSegment {
 
 export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
   const {
-    data = [],
-    series,
+    data: rawData = [],
+    series: userSeries,
+    x,
+    y,
     stacked = true,
     stackGap = 0,
     showLegend = true,
@@ -62,6 +66,8 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     valueFormatter,
     glowId,
     containerStyle,
+    containerRef,
+    ariaLabel,
     showGrid,
     gridLines,
     showXAxis,
@@ -75,7 +81,6 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
 
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [isPinned, setIsPinned] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isPinned) return;
@@ -90,13 +95,23 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     return () => {
       document.removeEventListener('pointerdown', handleOutside);
     };
-  }, [isPinned, onBarHover]);
+  }, [isPinned, onBarHover, containerRef]);
 
-  const isMultiSeries = Boolean(series && series.length > 0);
+  const normalizedInput = useMemo(() => {
+    return normalizeChartInput({
+      data: rawData,
+      series: userSeries,
+      x,
+      y,
+      defaultPalette: DEFAULT_PALETTE
+    });
+  }, [rawData, userSeries, x, y]);
+
+  const isMultiSeries = normalizedInput.isMultiSeries;
 
   const normalizedSeries = useMemo(() => {
-    if (isMultiSeries && series) {
-      return series.map((s, idx) => ({
+    if (normalizedInput.series && normalizedInput.series.length > 0) {
+      return normalizedInput.series.map((s, idx) => ({
         id: s.id || `bs-${idx}`,
         name: s.name || `Series ${idx + 1}`,
         color: s.color || DEFAULT_PALETTE[idx % DEFAULT_PALETTE.length],
@@ -108,10 +123,10 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
         id: 'def',
         name: 'Default',
         color,
-        data: toCleanData(data)
+        data: toCleanData(normalizedInput.data)
       }
     ];
-  }, [isMultiSeries, series, data, color]);
+  }, [normalizedInput, color]);
 
   const categoryCount = useMemo(() => {
     return Math.max(0, ...normalizedSeries.map((s) => s.data.length));
@@ -421,6 +436,41 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     handleBarEnter(closest);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<SVGSVGElement>) => {
+    if (!categoryCount || !renderedSegments.length) return;
+
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setIsPinned(true);
+      const currentCat = activeSegment ? activeSegment.catIdx : -1;
+      const nextCat = currentCat < categoryCount - 1 ? currentCat + 1 : 0;
+      const nextSeg = renderedSegments.find((s) => s.catIdx === nextCat);
+      if (nextSeg) handleBarEnter(nextSeg);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setIsPinned(true);
+      const currentCat = activeSegment ? activeSegment.catIdx : -1;
+      const prevCat = currentCat > 0 ? currentCat - 1 : categoryCount - 1;
+      const prevSeg = renderedSegments.find((s) => s.catIdx === prevCat);
+      if (prevSeg) handleBarEnter(prevSeg);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      setIsPinned(true);
+      const firstSeg = renderedSegments.find((s) => s.catIdx === 0);
+      if (firstSeg) handleBarEnter(firstSeg);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      setIsPinned(true);
+      const lastSeg = renderedSegments.find((s) => s.catIdx === categoryCount - 1);
+      if (lastSeg) handleBarEnter(lastSeg);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsPinned(false);
+      setHoveredKey(null);
+      onBarHover?.(null);
+    }
+  };
+
   if (categoryCount === 0) {
     return <ChartEmpty height={height} className={className} style={containerStyle} />;
   }
@@ -452,6 +502,10 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
         <svg
           viewBox={`0 0 ${width} ${height}`}
           style={fullSvgStyle}
+          tabIndex={0}
+          role="img"
+          aria-label={ariaLabel}
+          onKeyDown={handleKeyDown}
           onTouchStart={handleTouchScrub}
           onTouchMove={handleTouchScrub}
         >
@@ -624,6 +678,13 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
           })}
         </div>
       )}
+
+      {/* Visually hidden live region announcing active bar for assistive technologies */}
+      <div style={srOnlyStyle} aria-live="polite" aria-atomic="true">
+        {activeSegment
+          ? `${isMultiSeries ? `${activeSegment.seriesName} — ` : ''}${activeSegment.label ? `${activeSegment.label}: ` : ''}${valueFormatter(activeSegment.value)}${activeSegment.percent ? ` (${activeSegment.percent}%)` : ''}`
+          : ''}
+      </div>
       </div>
     </div>
   );
