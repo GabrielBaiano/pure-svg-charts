@@ -17,7 +17,16 @@ export interface ChartPadding {
   left: number;
 }
 
-export interface BaseChartProps {
+export interface ChartZone {
+  id?: string;
+  startX: string | number;
+  endX: string | number;
+  color?: string;
+  label?: string;
+  labelPosition?: 'top' | 'bottom';
+}
+
+export interface BaseChartProps<T = any> {
   /** Visual theme preset: 'default' | 'cyberpunk' | 'glass' | 'paper' | 'terminal' | 'tokyonight' (default: 'default') */
   variant?: 'default' | 'cyberpunk' | 'glass' | 'paper' | 'terminal' | 'tokyonight';
   /** Width in SVG coordinate units (default: 500) */
@@ -42,6 +51,8 @@ export interface BaseChartProps {
   showValues?: boolean;
   /** Formatter function for values and axis ticks */
   valueFormatter?: (val: number) => string;
+  /** Formatter function for X-axis labels */
+  labelFormatter?: (label: string) => string;
   /** Optional title displayed above chart */
   title?: string;
   /** Optional subtitle or description */
@@ -63,9 +74,13 @@ export interface BaseChartProps {
   /** Accessible label for the chart region/SVG (default: title or 'Interactive chart') */
   ariaLabel?: string;
   /** Key in data records representing the X-axis label/index (e.g. 'date', 'month') */
-  x?: string;
+  x?: (keyof T & string) | string;
   /** Key (or array of keys) representing series values (e.g. 'revenue' or ['revenue', 'expenses']) */
-  y?: string | string[];
+  y?: (keyof T & string) | (keyof T & string)[] | string | string[];
+  /** Array of colors for multi-series charts or custom palette */
+  colors?: string[];
+  /** Shaded background zones/intervals along the X axis */
+  zones?: ChartZone[];
   /** Custom CSS class names */
   className?: string;
   /** Inline styles for the outer container */
@@ -82,26 +97,33 @@ export interface LineSeries {
   fillGradient?: boolean;
 }
 
-export interface SvgLineChartProps extends BaseChartProps {
+export interface SvgLineChartProps<T = any> extends BaseChartProps<T> {
   /** Array of numbers, { value, label }, or arbitrary object records when x and y are provided */
-  data?: any[];
+  data?: (DataValue | T)[];
   /** Multiple series configuration for multi-line charts */
   series?: LineSeries[];
   /** Stroke width in pixels (default: 3) */
   strokeWidth?: number;
-  /** Whether to render a smooth Bézier curve or straight lines (default: true) */
-  smooth?: boolean;
-  /** Curvature intensity when smooth is true [0..1] (default: 0.25) */
-  curvature?: number;
-  /** SVG stroke-dasharray (e.g. "6 6" for dashed line) */
+  /** Stroke dash array for dashed lines (e.g. "5,5") */
   strokeDasharray?: string;
-  /** Show interactive data dots on the line (default: true) */
+  /** Use smooth Bézier curves instead of straight lines (default: false) */
+  smooth?: boolean;
+  /** Curvature tension for Bézier curves [0.0..1.0] (default: 0.25) */
+  curvature?: number;
+  /**
+   * Dot display mode:
+   * - 'hover' (default): 0 static dots in DOM. Renders 1 dynamic active dot when hovering/touching. O(1) DOM nodes.
+   * - 'always': renders dots on all data points.
+   * - 'none': no dots rendered at all.
+   */
+  dots?: 'hover' | 'always' | 'none';
+  /** Deprecated: use `dots` prop instead. If true, equivalent to `dots="always"`. If false, `dots="none"`. */
   showDots?: boolean;
-  /** Dot radius in pixels (default: 4) */
+  /** Dot radius in pixels (default: 4, auto-reduced on dense datasets) */
   dotRadius?: number;
-  /** Whether to fill the area under the curve with a gradient (default: true) */
+  /** Fill gradient area below the line (default: false) */
   fillGradient?: boolean;
-  /** Gradient start opacity (default: 0.35) */
+  /** Starting opacity of area fill gradient [0..1] (default: 0.35) */
   gradientStartOpacity?: number;
   /** Show series legend when multiple series are provided (default: true) */
   showLegend?: boolean;
@@ -115,12 +137,21 @@ export interface SvgLineChartProps extends BaseChartProps {
   renderTooltip?: (props: LineTooltipProps) => React.ReactNode;
 }
 
+export interface LineTooltipSeriesItem {
+  seriesName: string;
+  seriesColor: string;
+  value: number;
+  formattedValue: string;
+}
+
 export interface LineTooltipProps {
   point: Point;
   seriesName?: string;
   seriesColor?: string;
   value: number;
   formattedValue: string;
+  /** All series values at this X coordinate (useful for multi-series / stacked charts) */
+  allSeriesPoints?: LineTooltipSeriesItem[];
 }
 
 export interface BarSeries {
@@ -142,9 +173,9 @@ export interface BarTooltipProps {
   formattedValue: string;
 }
 
-export interface SvgBarChartProps extends BaseChartProps {
+export interface SvgBarChartProps<T = any> extends BaseChartProps<T> {
   /** Array of numbers, { value, label }, or arbitrary object records when x and y are provided */
-  data?: any[];
+  data?: (DataValue | T)[];
   /** Multiple series configuration for stacked or grouped bar charts */
   series?: BarSeries[];
   /** Whether multi-series bars are stacked vertically (default: true when series is present) */

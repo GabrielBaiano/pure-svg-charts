@@ -20,6 +20,7 @@ interface HoveredSeriesPoint extends Point {
   seriesColor?: string;
   seriesName?: string;
   originalValue?: number;
+  index?: number;
 }
 
 interface RenderedLineSeries {
@@ -35,14 +36,48 @@ interface RenderedLineSeries {
   gradId: string;
 }
 
-export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
+function resolveZoneX(val: string | number, points: (Point & { originalValue?: number })[]): number | null {
+  if (!points.length) return null;
+  if (typeof val === 'number') {
+    if (val >= 0 && val < points.length) {
+      return points[val].x;
+    }
+  }
+  const strVal = String(val);
+  const matched = points.find((p) => p.label === strVal);
+  if (matched) return matched.x;
+
+  const valTime = new Date(val).getTime();
+  if (!isNaN(valTime)) {
+    let closestPt = points[0];
+    let closestDiff = Infinity;
+    for (const p of points) {
+      if (p.label) {
+        const pTime = new Date(p.label).getTime();
+        if (!isNaN(pTime)) {
+          const diff = Math.abs(pTime - valTime);
+          if (diff < closestDiff) {
+            closestDiff = diff;
+            closestPt = p;
+          }
+        }
+      }
+    }
+    return closestPt.x;
+  }
+
+  return null;
+}
+
+export function SvgLineChart<T = any>(props: SvgLineChartProps<T>): React.ReactElement {
   const {
     data: rawData,
     series: userSeries,
     x,
     y,
     curvature = 0.25,
-    showDots = true,
+    dots: userDots,
+    showDots: userShowDots,
     dotRadius: userDotRadius,
     showValues = false,
     title,
@@ -53,8 +88,12 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     maxDisplayPoints = 300,
     className = '',
     onPointHover,
-    renderTooltip
+    renderTooltip,
+    zones
   } = props;
+
+  const dotsMode: 'hover' | 'always' | 'none' =
+    userDots ?? (userShowDots !== undefined ? (userShowDots ? 'always' : 'none') : 'hover');
 
   const base = useChartBase(props);
   const {
@@ -112,9 +151,10 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
       series: userSeries,
       x,
       y,
+      colors: props.colors,
       defaultPalette: DEFAULT_PALETTE
     });
-  }, [rawData, userSeries, x, y]);
+  }, [rawData, userSeries, x, y, props.colors]);
 
   const normalizedSeries = useMemo(() => {
     if (normalizedInput.series && normalizedInput.series.length > 0) {
@@ -125,7 +165,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
         color: s.color || DEFAULT_PALETTE[idx % DEFAULT_PALETTE.length],
         strokeWidth: s.strokeWidth ?? strokeWidth,
         strokeDasharray: s.strokeDasharray ?? strokeDasharray,
-        fillGradient: s.fillGradient ?? (idx === 0 && fillGradient)
+        fillGradient: s.fillGradient ?? (stacked ? fillGradient : idx === 0 && fillGradient)
       }));
     }
     return [
@@ -139,7 +179,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
         fillGradient
       }
     ];
-  }, [normalizedInput, color, strokeWidth, strokeDasharray, fillGradient]);
+  }, [normalizedInput, color, strokeWidth, strokeDasharray, fillGradient, stacked]);
 
   const isMultiSeries = normalizedInput.isMultiSeries;
 
@@ -246,8 +286,9 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
   }, [stackedSeriesData, width, height, pad, effectiveBaselineY, minVal, maxVal, smooth, curvature, uid, maxDisplayPoints, stacked, isMultiSeries]);
 
   const maxSeriesPoints = Math.max(0, ...renderedSeries.map((s) => s.points.length));
-  const isHighDensity = maxSeriesPoints > 60;
   const dotRadius = userDotRadius ?? (maxSeriesPoints > 50 ? 2.5 : maxSeriesPoints > 25 ? 3 : 4);
+
+  const labelFormatter = props.labelFormatter || ((l: string) => l);
 
   const visibleLabels = useMemo(() => {
     const ref = renderedSeries.find((s) => s.points.some((p) => p.label)) || renderedSeries[0];
@@ -258,17 +299,23 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
       if (p.label) labeled.push(p);
     }
     if (!labeled.length) return [];
-    const maxL = Math.min(8, Math.max(2, Math.floor(chartWidth / 55)));
+    const sampleLabel = labeled[0]?.label ? labelFormatter(labeled[0].label) : '';
+    const approxWidth = Math.max(45, sampleLabel.length * 7 + 20);
+    const maxL = Math.min(8, Math.max(2, Math.floor(chartWidth / approxWidth)));
     const sampled = getSampledLabelIndices(labeled.length, maxL);
-    return Array.from(sampled).map((i) => labeled[i]);
-  }, [renderedSeries, chartWidth]);
+    return Array.from(sampled).map((i) => ({
+      x: labeled[i].x,
+      label: labeled[i].label,
+      formattedLabel: labeled[i].label ? labelFormatter(labeled[i].label!) : ''
+    }));
+  }, [renderedSeries, chartWidth, labelFormatter]);
 
   const transitionStyle = animated
     ? { transition: 'd 0.45s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s, fill 0.3s' }
     : undefined;
 
-  const handleMouseEnter = (pt: Point, sName?: string, sColor?: string) => {
-    const enriched = { ...pt, seriesName: sName, seriesColor: sColor };
+  const handleMouseEnter = (pt: Point, sName?: string, sColor?: string, ptIdx?: number) => {
+    const enriched = { ...pt, seriesName: sName, seriesColor: sColor, index: ptIdx };
     setActivePoint(enriched);
     onPointHover?.(enriched);
   };
@@ -282,6 +329,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
 
   const resolveClosestPoint = (svgX: number, svgY: number) => {
     let closestPt: Point | null = null;
+    let closestPtIdx: number | undefined;
     let closestDist = Infinity;
     let closestSeriesName: string | undefined;
     let closestSeriesColor: string | undefined;
@@ -297,10 +345,11 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
       }
       const i1 = Math.max(0, Math.min(s.points.length - 1, low));
       const i0 = Math.max(0, i1 - 1);
-      const cand =
+      const candIdx =
         Math.abs(s.points[i0].x - svgX) < Math.abs(s.points[i1].x - svgX)
-          ? s.points[i0]
-          : s.points[i1];
+          ? i0
+          : i1;
+      const cand = s.points[candIdx];
 
       const dx = cand.x - svgX;
       const dy = cand.y - svgY;
@@ -309,6 +358,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
       if (dist < closestDist) {
         closestDist = dist;
         closestPt = cand;
+        closestPtIdx = candIdx;
         closestSeriesName = s.name;
         closestSeriesColor = s.color;
       }
@@ -323,7 +373,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
       ) {
         return;
       }
-      handleMouseEnter(closestPt, closestSeriesName, closestSeriesColor);
+      handleMouseEnter(closestPt, closestSeriesName, closestSeriesColor, closestPtIdx);
     }
   };
 
@@ -360,22 +410,22 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
       const currentIdx = activePoint ? pts.findIndex((p) => p.x === activePoint.x && p.y === activePoint.y) : -1;
       const nextIdx = currentIdx < pts.length - 1 ? currentIdx + 1 : 0;
       const nextPt = pts[nextIdx];
-      handleMouseEnter(nextPt, renderedSeries[0].name, renderedSeries[0].color);
+      handleMouseEnter(nextPt, renderedSeries[0].name, renderedSeries[0].color, nextIdx);
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
       setIsPinned(true);
       const currentIdx = activePoint ? pts.findIndex((p) => p.x === activePoint.x && p.y === activePoint.y) : -1;
       const prevIdx = currentIdx > 0 ? currentIdx - 1 : pts.length - 1;
       const prevPt = pts[prevIdx];
-      handleMouseEnter(prevPt, renderedSeries[0].name, renderedSeries[0].color);
+      handleMouseEnter(prevPt, renderedSeries[0].name, renderedSeries[0].color, prevIdx);
     } else if (e.key === 'Home') {
       e.preventDefault();
       setIsPinned(true);
-      handleMouseEnter(pts[0], renderedSeries[0].name, renderedSeries[0].color);
+      handleMouseEnter(pts[0], renderedSeries[0].name, renderedSeries[0].color, 0);
     } else if (e.key === 'End') {
       e.preventDefault();
       setIsPinned(true);
-      handleMouseEnter(pts[pts.length - 1], renderedSeries[0].name, renderedSeries[0].color);
+      handleMouseEnter(pts[pts.length - 1], renderedSeries[0].name, renderedSeries[0].color, pts.length - 1);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       setIsPinned(false);
@@ -438,6 +488,50 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           {glow && <ChartGlowFilter id={glowId} color={color} />}
         </defs>
 
+        {/* Shaded background zones/intervals */}
+        {zones && zones.length > 0 && (
+          <g className="chart-zones" pointerEvents="none">
+            {zones.map((zone, zIdx) => {
+              const pts = renderedSeries[0]?.points || [];
+              if (!pts.length) return null;
+              const x0 = resolveZoneX(zone.startX, pts);
+              const x1 = resolveZoneX(zone.endX, pts);
+              if (x0 === null || x1 === null) return null;
+              const left = Math.min(x0, x1);
+              const right = Math.max(x0, x1);
+              const zoneWidth = Math.max(2, right - left);
+              const zoneHeight = Math.max(0, baselineY - pad.top);
+              return (
+                <g key={zone.id || `zone-${zIdx}`}>
+                  <rect
+                    data-testid="chart-zone"
+                    x={left}
+                    y={pad.top}
+                    width={zoneWidth}
+                    height={zoneHeight}
+                    fill={zone.color || 'rgba(59, 130, 246, 0.08)'}
+                    rx={2}
+                  />
+                  {zone.label && (
+                    <text
+                      data-testid="chart-zone-label"
+                      x={left + zoneWidth / 2}
+                      y={zone.labelPosition === 'bottom' ? baselineY - 8 : pad.top + 14}
+                      textAnchor="middle"
+                      fill="currentColor"
+                      opacity={0.65}
+                      fontSize="10"
+                      fontWeight="600"
+                    >
+                      {zone.label}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </g>
+        )}
+
         <ChartGrid
           showGrid={showGrid}
           showYAxis={showYAxis}
@@ -470,6 +564,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
             strokeLinejoin="round"
             filter={glow ? `url(#${glowId})` : undefined}
             style={transitionStyle}
+            pointerEvents="none"
           />
         ))}
 
@@ -477,7 +572,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           <SvgCrosshair
             x={activePoint.x}
             y={activePoint.y}
-            baselineY={zeroY}
+            baselineY={baselineY}
             padLeft={pad.left}
             padRight={pad.right}
             width={width}
@@ -487,113 +582,68 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           />
         )}
 
-        {/* Static dots and values (rendered only when showDots or showValues is enabled) */}
-        {(!isHighDensity && showDots || (showValues && !isMultiSeries)) &&
+        {/* Static values for single-series charts */}
+        {showValues &&
+          !isMultiSeries &&
+          renderedSeries[0]?.points.map((pt, ptIdx) => {
+            const shouldShowValue = maxSeriesPoints <= 25 || ptIdx % Math.ceil(maxSeriesPoints / 12) === 0;
+            if (!shouldShowValue) return null;
+            return (
+              <text
+                key={`val-${ptIdx}`}
+                x={pt.x}
+                y={pt.value < 0 ? pt.y + dotRadius + 14 : pt.y - (dotRadius + 6)}
+                textAnchor="middle"
+                fill="currentColor"
+                fontSize="11"
+                fontWeight="700"
+                pointerEvents="none"
+              >
+                {valueFormatter(pt.value)}
+              </text>
+            );
+          })}
+
+        {/* Static dots (rendered only when dotsMode === 'always') */}
+        {dotsMode === 'always' &&
           renderedSeries.map((s) =>
             s.points.map((pt, ptIdx) => {
-              const shouldShowValue =
-                showValues &&
-                !isMultiSeries &&
-                (maxSeriesPoints <= 25 || ptIdx % Math.ceil(maxSeriesPoints / 12) === 0);
-              const shouldShowDot = showDots && !isHighDensity;
-
-              if (!shouldShowValue && !shouldShowDot) return null;
-
               const isHovered = activePoint?.x === pt.x && activePoint?.y === pt.y;
-
-              if (shouldShowValue && shouldShowDot) {
-                return (
-                  <g key={`${s.id}-${ptIdx}`}>
-                    <text
-                      x={pt.x}
-                      y={pt.value < 0 ? pt.y + dotRadius + 14 : pt.y - (dotRadius + 6)}
-                      textAnchor="middle"
-                      fill="currentColor"
-                      fontSize="11"
-                      fontWeight="700"
-                      pointerEvents="none"
-                    >
-                      {valueFormatter(pt.value)}
-                    </text>
-                    <circle
-                      cx={pt.x}
-                      cy={pt.y}
-                      r={isHovered ? dotRadius * 1.5 : dotRadius}
-                      fill={isHovered ? '#fff' : s.color}
-                      stroke={s.color}
-                      strokeWidth={isHovered ? 3 : 2}
-                      style={{ cursor: 'pointer', transition: animated ? 'all 0.2s' : undefined }}
-                      pointerEvents="none"
-                    />
-                    <circle
-                      cx={pt.x}
-                      cy={pt.y}
-                      r={Math.max(16, dotRadius * 2.5)}
-                      fill="transparent"
-                      style={{ cursor: 'pointer' }}
-                      onMouseEnter={() => handleMouseEnter(pt, s.name, s.color)}
-                      onMouseLeave={handleMouseLeave}
-                      onTouchStart={(e) => {
-                        e.stopPropagation();
-                        setIsPinned(true);
-                        handleMouseEnter(pt, s.name, s.color);
-                      }}
-                    />
-                  </g>
-                );
-              }
-
-              if (shouldShowDot) {
-                return (
-                  <g key={`${s.id}-${ptIdx}`}>
-                    <circle
-                      cx={pt.x}
-                      cy={pt.y}
-                      r={isHovered ? dotRadius * 1.5 : dotRadius}
-                      fill={isHovered ? '#fff' : s.color}
-                      stroke={s.color}
-                      strokeWidth={isHovered ? 3 : 2}
-                      style={{ cursor: 'pointer', transition: animated ? 'all 0.2s' : undefined }}
-                      pointerEvents="none"
-                    />
-                    <circle
-                      cx={pt.x}
-                      cy={pt.y}
-                      r={Math.max(16, dotRadius * 2.5)}
-                      fill="transparent"
-                      style={{ cursor: 'pointer' }}
-                      onMouseEnter={() => handleMouseEnter(pt, s.name, s.color)}
-                      onMouseLeave={handleMouseLeave}
-                      onTouchStart={(e) => {
-                        e.stopPropagation();
-                        setIsPinned(true);
-                        handleMouseEnter(pt, s.name, s.color);
-                      }}
-                    />
-                  </g>
-                );
-              }
-
               return (
-                <text
-                  key={`${s.id}-${ptIdx}`}
-                  x={pt.x}
-                  y={pt.value < 0 ? pt.y + dotRadius + 14 : pt.y - (dotRadius + 6)}
-                  textAnchor="middle"
-                  fill="currentColor"
-                  fontSize="11"
-                  fontWeight="700"
-                  pointerEvents="none"
-                >
-                  {valueFormatter(pt.value)}
-                </text>
+                <g key={`${s.id}-${ptIdx}`}>
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={isHovered ? dotRadius * 1.5 : dotRadius}
+                    fill={isHovered ? '#fff' : s.color}
+                    stroke={s.color}
+                    strokeWidth={isHovered ? 3 : 2}
+                    style={{ cursor: 'pointer', transition: animated ? 'all 0.2s' : undefined }}
+                    pointerEvents="none"
+                  />
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={Math.max(16, dotRadius * 2.5)}
+                    fill="transparent"
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={() => handleMouseEnter(pt, s.name, s.color, ptIdx)}
+                    onMouseLeave={handleMouseLeave}
+                    onTouchStart={(e) => {
+                      e.stopPropagation();
+                      setIsPinned(true);
+                      handleMouseEnter(pt, s.name, s.color, ptIdx);
+                    }}
+                  />
+                </g>
               );
             })
           )}
 
-        {/* Dynamic active point highlight dot (used when static dots are hidden) */}
-        {(isHighDensity || !showDots) && activePoint && (
+        {/* Dynamic active point highlight dot (used when dotsMode === 'hover') */}
+        {dotsMode === 'hover' && activePoint && (
           <circle
+            data-testid="active-hover-dot"
             cx={activePoint.x}
             cy={activePoint.y}
             r={dotRadius * 1.5}
@@ -630,7 +680,7 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
               fontSize="11"
               fontWeight="500"
             >
-              {lbl.label}
+              {lbl.formattedLabel}
             </text>
           ))}
 
@@ -675,7 +725,22 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
             value: activePoint.originalValue !== undefined ? activePoint.originalValue : activePoint.value,
             formattedValue: valueFormatter(
               activePoint.originalValue !== undefined ? activePoint.originalValue : activePoint.value
-            )
+            ),
+            allSeriesPoints: isMultiSeries
+              ? renderedSeries.map((s) => {
+                  const pt =
+                    activePoint.index !== undefined && activePoint.index >= 0 && activePoint.index < s.points.length
+                      ? s.points[activePoint.index]
+                      : s.points.find((p) => p.x === activePoint.x);
+                  const val = pt?.originalValue !== undefined ? pt.originalValue : pt ? pt.value : 0;
+                  return {
+                    seriesName: s.name,
+                    seriesColor: s.color,
+                    value: val,
+                    formattedValue: valueFormatter(val)
+                  };
+                })
+              : undefined
           })}
         </div>
       )}

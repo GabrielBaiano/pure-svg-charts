@@ -58,12 +58,10 @@ export function useChartBase(props: any) {
     const measure = () => {
       const rect = el.getBoundingClientRect();
       const w = Math.floor(rect.width);
-      const h = Math.floor(rect.height);
       if (w > 0) {
         setMeasuredSize((prev) => {
-          const nextH = h > 0 ? h : (props.height ?? 220);
-          if (prev?.width === w && prev?.height === nextH) return prev;
-          return { width: w, height: nextH };
+          if (prev?.width === w) return prev;
+          return { width: w, height: props.height ?? 220 };
         });
       }
     };
@@ -77,14 +75,12 @@ export function useChartBase(props: any) {
 
     const observer = new ResizeObserver((entries) => {
       if (!entries.length) return;
-      const { width: w, height: h } = entries[0].contentRect;
+      const { width: w } = entries[0].contentRect;
       const floorW = Math.floor(w);
-      const floorH = Math.floor(h);
       if (floorW > 0) {
         setMeasuredSize((prev) => {
-          const nextH = floorH > 0 ? floorH : (props.height ?? 220);
-          if (prev?.width === floorW && prev?.height === nextH) return prev;
-          return { width: floorW, height: nextH };
+          if (prev?.width === floorW) return prev;
+          return { width: floorW, height: props.height ?? 220 };
         });
       }
     });

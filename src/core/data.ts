@@ -19,9 +19,18 @@ export function normalizeChartInput<TSeries extends { name: string; data: DataVa
   series?: TSeries[];
   x?: string;
   y?: string | string[];
+  colors?: string[];
   defaultPalette?: string[];
 }): NormalizedInputResult<TSeries> {
-  const { data = [], series, x, y, defaultPalette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6'] } = options;
+  const {
+    data = [],
+    series,
+    x,
+    y,
+    colors,
+    defaultPalette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6']
+  } = options;
+  const palette = colors && colors.length > 0 ? colors : defaultPalette;
 
   // 1. Explicit multi-series already provided
   if (series && series.length > 0) {
@@ -46,7 +55,7 @@ export function normalizeChartInput<TSeries extends { name: string; data: DataVa
     const generatedSeries: TSeries[] = y.map((key, idx) => ({
       id: `s-${key}-${idx}`,
       name: key,
-      color: defaultPalette[idx % defaultPalette.length],
+      color: palette[idx % palette.length],
       data: data.map((item) => {
         const val = typeof item === 'object' && item !== null ? Number(item[key]) || 0 : 0;
         const lbl = x && typeof item === 'object' && item !== null && item[x] !== undefined

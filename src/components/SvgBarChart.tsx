@@ -34,7 +34,7 @@ interface RenderedBarSegment {
   percent?: string;
 }
 
-export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
+export function SvgBarChart<T = any>(props: SvgBarChartProps<T>): React.ReactElement {
   const {
     data: rawData = [],
     series: userSeries,
