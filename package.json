@@ -18,7 +18,8 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build --mode lib",
+    "build": "vite build --mode lib && tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run test && npm run build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -26,6 +27,14 @@
     "benchmarks:dev": "npm --prefix benchmarks run dev",
     "benchmarks:build": "npm --prefix benchmarks run build"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GabrielBaiano/pure-svg-charts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GabrielBaiano/pure-svg-charts/issues"
+  },
+  "homepage": "https://github.com/GabrielBaiano/pure-svg-charts#readme",
   "keywords": [
     "react",
     "svg",
