@@ -103,6 +103,16 @@ export interface SvgLineChartProps extends BaseChartProps {
   maxDisplayPoints?: number;
   /** Callback when a point is hovered */
   onPointHover?: (point: Point | null) => void;
+  /** Custom render function for tooltip (HTML/React overlay). Overrides default SVG tooltip. */
+  renderTooltip?: (props: LineTooltipProps) => React.ReactNode;
+}
+
+export interface LineTooltipProps {
+  point: Point;
+  seriesName?: string;
+  seriesColor?: string;
+  value: number;
+  formattedValue: string;
 }
 
 export interface BarSeries {
@@ -110,6 +120,18 @@ export interface BarSeries {
   name: string;
   color?: string;
   data: DataValue[];
+}
+
+export interface BarTooltipProps {
+  item: {
+    value: number;
+    index: number;
+    label?: string;
+    seriesName?: string;
+    seriesColor?: string;
+    percent?: string;
+  };
+  formattedValue: string;
 }
 
 export interface SvgBarChartProps extends BaseChartProps {
@@ -129,6 +151,8 @@ export interface SvgBarChartProps extends BaseChartProps {
   barGap?: number;
   /** Callback when a bar is hovered */
   onBarHover?: (item: { value: number; index: number; label?: string; seriesName?: string } | null) => void;
+  /** Custom render function for tooltip (HTML/React overlay). Overrides default SVG tooltip. */
+  renderTooltip?: (props: BarTooltipProps) => React.ReactNode;
 }
 
 export interface DonutSlice {

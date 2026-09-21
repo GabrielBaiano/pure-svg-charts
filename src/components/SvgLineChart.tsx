@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { generateAreaPath, generateLinePath, generateStackedAreaPath } from '../core/bezier';
 import { downsampleLTTB } from '../core/lttb';
 import { getSampledLabelIndices, scaleDataToPoints } from '../core/scale';
@@ -48,7 +48,8 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     stacked = false,
     maxDisplayPoints = 300,
     className = '',
-    onPointHover
+    onPointHover,
+    renderTooltip
   } = props;
 
   const base = useChartBase(props);
@@ -82,6 +83,23 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
   const gradientStartOpacity = props.gradientStartOpacity ?? preset.gradientStartOpacity;
 
   const [activePoint, setActivePoint] = useState<HoveredSeriesPoint | null>(null);
+  const [isPinned, setIsPinned] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isPinned) return;
+    const handleOutside = (e: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsPinned(false);
+        setActivePoint(null);
+        onPointHover?.(null);
+      }
+    };
+    document.addEventListener('pointerdown', handleOutside);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutside);
+    };
+  }, [isPinned, onPointHover]);
 
   const normalizedSeries = useMemo(() => {
     if (series && series.length > 0) {
@@ -241,18 +259,13 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
   };
 
   const handleMouseLeave = () => {
-    setActivePoint(null);
-    onPointHover?.(null);
+    if (!isPinned) {
+      setActivePoint(null);
+      onPointHover?.(null);
+    }
   };
 
-  const handleOverlayMouseMove = (e: React.MouseEvent<SVGRectElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const clientX = e.clientX - rect.left;
-    const clientY = e.clientY - rect.top;
-    const svgX = pad.left + (clientX / rect.width) * chartWidth;
-    const svgY = pad.top + (clientY / rect.height) * (baselineY - pad.top);
-
+  const resolveClosestPoint = (svgX: number, svgY: number) => {
     let closestPt: Point | null = null;
     let closestDist = Infinity;
     let closestSeriesName: string | undefined;
@@ -274,8 +287,6 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           ? s.points[i0]
           : s.points[i1];
 
-      // 2D distance ensures that in multi-series charts, vertical cursor position
-      // accurately selects the closest line instead of always picking the first one
       const dx = cand.x - svgX;
       const dy = cand.y - svgY;
       const dist = dx * dx + dy * dy;
@@ -301,12 +312,35 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
     }
   };
 
+  const handleOverlayMouseMove = (e: React.MouseEvent<SVGRectElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const clientX = e.clientX - rect.left;
+    const clientY = e.clientY - rect.top;
+    const svgX = pad.left + (clientX / rect.width) * chartWidth;
+    const svgY = pad.top + (clientY / rect.height) * (baselineY - pad.top);
+    resolveClosestPoint(svgX, svgY);
+  };
+
+  const handleTouch = (e: React.TouchEvent<SVGRectElement | SVGSVGElement>) => {
+    if (!e.touches || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const clientX = touch.clientX - rect.left;
+    const clientY = touch.clientY - rect.top;
+    const svgX = pad.left + (clientX / rect.width) * chartWidth;
+    const svgY = pad.top + (clientY / rect.height) * (baselineY - pad.top);
+    setIsPinned(true);
+    resolveClosestPoint(svgX, svgY);
+  };
+
   if (!maxSeriesPoints) {
     return <ChartEmpty height={height} className={className} style={containerStyle} />;
   }
 
   return (
-    <div className={`pure-svg-chart-container ${className}`} style={containerStyle}>
+    <div ref={containerRef} className={`pure-svg-chart-container ${className}`} style={containerStyle}>
       <ChartHeader
         title={title}
         subtitle={subtitle}
@@ -334,7 +368,8 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
         </div>
       )}
 
-      <svg viewBox={`0 0 ${width} ${height}`} style={fullSvgStyle}>
+      <div style={{ position: 'relative', width: '100%', touchAction: 'pan-y' }}>
+        <svg viewBox={`0 0 ${width} ${height}`} style={fullSvgStyle}>
         <defs>
           {renderedSeries.map((s) =>
             s.fillGradient ? (
@@ -432,8 +467,21 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
                       stroke={s.color}
                       strokeWidth={isHovered ? 3 : 2}
                       style={{ cursor: 'pointer', transition: animated ? 'all 0.2s' : undefined }}
+                      pointerEvents="none"
+                    />
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={Math.max(16, dotRadius * 2.5)}
+                      fill="transparent"
+                      style={{ cursor: 'pointer' }}
                       onMouseEnter={() => handleMouseEnter(pt, s.name, s.color)}
                       onMouseLeave={handleMouseLeave}
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        setIsPinned(true);
+                        handleMouseEnter(pt, s.name, s.color);
+                      }}
                     />
                   </g>
                 );
@@ -441,18 +489,32 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
 
               if (shouldShowDot) {
                 return (
-                  <circle
-                    key={`${s.id}-${ptIdx}`}
-                    cx={pt.x}
-                    cy={pt.y}
-                    r={isHovered ? dotRadius * 1.5 : dotRadius}
-                    fill={isHovered ? '#fff' : s.color}
-                    stroke={s.color}
-                    strokeWidth={isHovered ? 3 : 2}
-                    style={{ cursor: 'pointer', transition: animated ? 'all 0.2s' : undefined }}
-                    onMouseEnter={() => handleMouseEnter(pt, s.name, s.color)}
-                    onMouseLeave={handleMouseLeave}
-                  />
+                  <g key={`${s.id}-${ptIdx}`}>
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={isHovered ? dotRadius * 1.5 : dotRadius}
+                      fill={isHovered ? '#fff' : s.color}
+                      stroke={s.color}
+                      strokeWidth={isHovered ? 3 : 2}
+                      style={{ cursor: 'pointer', transition: animated ? 'all 0.2s' : undefined }}
+                      pointerEvents="none"
+                    />
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={Math.max(16, dotRadius * 2.5)}
+                      fill="transparent"
+                      style={{ cursor: 'pointer' }}
+                      onMouseEnter={() => handleMouseEnter(pt, s.name, s.color)}
+                      onMouseLeave={handleMouseLeave}
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        setIsPinned(true);
+                        handleMouseEnter(pt, s.name, s.color);
+                      }}
+                    />
+                  </g>
                 );
               }
 
@@ -486,19 +548,19 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           />
         )}
 
-        {/* Transparent overlay capturing mouse movements (active in high-density or when dots are hidden) */}
-        {(isHighDensity || !showDots) && (
-          <rect
-            x={pad.left}
-            y={pad.top}
-            width={chartWidth}
-            height={Math.max(0, baselineY - pad.top)}
-            fill="transparent"
-            style={{ cursor: 'crosshair' }}
-            onMouseMove={handleOverlayMouseMove}
-            onMouseLeave={handleMouseLeave}
-          />
-        )}
+        {/* Transparent overlay capturing mouse and touch scrubbing movements */}
+        <rect
+          x={pad.left}
+          y={pad.top}
+          width={chartWidth}
+          height={Math.max(0, baselineY - pad.top)}
+          fill="transparent"
+          style={{ cursor: 'crosshair' }}
+          onMouseMove={handleOverlayMouseMove}
+          onMouseLeave={handleMouseLeave}
+          onTouchStart={handleTouch}
+          onTouchMove={handleTouch}
+        />
 
         {showXAxis &&
           visibleLabels.map((lbl, idx) => (
@@ -516,8 +578,8 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
             </text>
           ))}
 
-        {/* SVG-native hover tooltip — always anchored exactly above active point */}
-        {activePoint && !showValues && (() => {
+        {/* SVG-native hover tooltip — used when custom renderTooltip is not provided */}
+        {activePoint && !showValues && !renderTooltip && (() => {
           const displayVal =
             activePoint.originalValue !== undefined ? activePoint.originalValue : activePoint.value;
           const text =
@@ -535,6 +597,33 @@ export const SvgLineChart: React.FC<SvgLineChartProps> = (props) => {
           );
         })()}
       </svg>
+
+      {/* HTML overlay tooltip for custom React component rendering */}
+      {activePoint && !showValues && renderTooltip && (
+        <div
+          data-testid="custom-tooltip"
+          style={{
+            position: 'absolute',
+            left: `${(activePoint.x / width) * 100}%`,
+            top: `${(activePoint.y / height) * 100}%`,
+            transform: 'translate(-50%, -100%)',
+            pointerEvents: 'none',
+            zIndex: 10,
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {renderTooltip({
+            point: activePoint,
+            seriesName: activePoint.seriesName,
+            seriesColor: activePoint.seriesColor,
+            value: activePoint.originalValue !== undefined ? activePoint.originalValue : activePoint.value,
+            formattedValue: valueFormatter(
+              activePoint.originalValue !== undefined ? activePoint.originalValue : activePoint.value
+            )
+          })}
+        </div>
+      )}
+      </div>
     </div>
   );
 };

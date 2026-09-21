@@ -14,37 +14,37 @@ This document outlines the strategic improvement roadmap, upcoming features, and
 
 ## 🚨 Priority 1 (P1): Mobile Interactivity & Touch Gestures *(Top Deal-Breaker)*
 
-- [ ] **Native Touch Event Listeners:**
-  - [ ] Implement `onTouchStart`, `onTouchMove`, and `onTouchEnd` in `<SvgLineChart>` and `<SvgBarChart>`.
-  - [ ] Calculate precise relative touch coordinates (`e.touches[0].clientX / clientY`).
-  - [ ] Set `touch-action: pan-y` on the SVG container to preserve natural vertical page scrolling while the user scrubs horizontally across the chart.
-- [ ] **Tap-to-Pin Tooltip Behavior:**
-  - [ ] Lock the tooltip to the closest data point on single tap.
-  - [ ] Dismiss smoothly when tapping outside the chart canvas.
-- [ ] **High-Density Touch Hitbox:**
-  - [ ] Enlarge touch hitboxes for crosshair guidelines and active anchor points to facilitate effortless fingertip tracking on mobile and tablet screens.
+- [x] **Native Touch Event Listeners:**
+  - [x] Implement `onTouchStart`, `onTouchMove`, and `onTouchEnd` in `<SvgLineChart>` and `<SvgBarChart>`.
+  - [x] Calculate precise relative touch coordinates (`e.touches[0].clientX / clientY`).
+  - [x] Set `touch-action: pan-y` on the SVG container to preserve natural vertical page scrolling while the user scrubs horizontally across the chart.
+- [x] **Tap-to-Pin Tooltip Behavior:**
+  - [x] Lock the tooltip to the closest data point on single tap.
+  - [x] Dismiss smoothly when tapping outside the chart canvas.
+- [x] **High-Density Touch Hitbox:**
+  - [x] Enlarge touch hitboxes for crosshair guidelines and active anchor points to facilitate effortless fingertip tracking on mobile and tablet screens.
 
 ---
 
 ## 🎨 Priority 2 (P2): Rich & Fully Customizable Tooltips with React Components
 
-- [ ] **`renderTooltip` Prop (HTML / React Children):**
-  - [ ] Allow developers to pass an arbitrary React component for custom tooltip rendering:
+- [x] **`renderTooltip` Prop (HTML / React Children):**
+  - [x] Allow developers to pass an arbitrary React component for custom tooltip rendering:
     ```tsx
     <SvgLineChart
       data={data}
-      renderTooltip={({ point, seriesIndex, activeColor }) => (
+      renderTooltip={({ point, seriesName, formattedValue }) => (
         <div className="bg-slate-900 p-3 rounded-lg border border-slate-700 shadow-xl">
           <span className="font-bold text-emerald-400">{point.label}</span>
-          <p className="text-white text-lg font-semibold">{point.value.toLocaleString()} USD</p>
+          <p className="text-white text-lg font-semibold">{formattedValue} USD</p>
         </div>
       )}
     />
     ```
-- [ ] **HTML Overlay / React Portal Rendering:**
-  - [ ] Anchor the tooltip outside the SVG clipping boundary (using an HTML overlay or `createPortal`) to prevent it from being cropped by `overflow: hidden`.
-- [ ] **Zero-Overhead Fallback:**
-  - [ ] Preserve the native SVG tooltip (`<rect>` + `<text>`) as the default lightweight fallback when no custom component is supplied.
+- [x] **HTML Overlay / React Portal Rendering:**
+  - [x] Anchor the tooltip outside the SVG clipping boundary (using an HTML overlay or `createPortal`) to prevent it from being cropped by `overflow: hidden`.
+- [x] **Zero-Overhead Fallback:**
+  - [x] Preserve the native SVG tooltip (`<rect>` + `<text>`) as the default lightweight fallback when no custom component is supplied.
 
 ---
 
@@ -92,16 +92,17 @@ This document outlines the strategic improvement roadmap, upcoming features, and
 ---
 
 ## 🛠️ Priority 6 (P6): Infrastructure, Tree-Shaking & Production Reliability
-
-- [ ] **Surgical Tree-Shaking (`"sideEffects": false`):**
-  - [ ] Declare `"sideEffects": false` in root `package.json` so importing only `<SvgLineChart />` yields a standalone bundle of only ~4 kB.
-- [ ] **Automated Test Suite (Vitest):**
-  - [ ] Setup Vitest + React Testing Library.
-  - [ ] Unit tests for LTTB downsampling accuracy (`lttb.test.ts`).
-  - [ ] Unit tests for Bézier curve mathematics (`bezier.test.ts`).
-  - [ ] Synchronous SSR render assertion tests.
-- [ ] **Continuous Integration (GitHub Actions):**
-  - [ ] Add `.github/workflows/ci.yml` verifying TypeScript compilation, linting, and automated tests on every Pull Request.
+ 
+- [x] **Surgical Tree-Shaking (`"sideEffects": false`):**
+  - [x] Declare `"sideEffects": false` in root `package.json` so importing only `<SvgLineChart />` yields a standalone bundle of only ~4 kB.
+- [x] **Automated Test Suite (Vitest):**
+  - [x] Setup Vitest + React Testing Library.
+  - [x] Unit tests for LTTB downsampling accuracy (`lttb.test.ts`).
+  - [x] Unit tests for Bézier curve mathematics (`bezier.test.ts`).
+  - [x] Unit tests for scaling and coordinates (`scale.test.ts`).
+  - [x] Component tests for Line and Bar charts with touch and custom tooltips.
+- [x] **Continuous Integration (GitHub Actions):**
+  - [x] Add `.github/workflows/ci.yml` verifying TypeScript compilation, linting, and automated tests on every Pull Request.
 - [ ] **Image Export Utility:**
   - [ ] Helper utility `exportChartAsImage(svgRef, 'png' | 'svg', filename)` enabling users to easily build "Download Chart" buttons.
 
@@ -111,9 +112,9 @@ This document outlines the strategic improvement roadmap, upcoming features, and
 
 | Priority | Feature Area | Status |
 | :--- | :--- | :--- |
-| **P1** | Mobile & Touch Events | ⏳ Planned |
-| **P2** | Custom Tooltip (React Portal / HTML) | ⏳ Planned |
+| **P1** | Mobile & Touch Events | ✅ Completed |
+| **P2** | Custom Tooltip (React Portal / HTML) | ✅ Completed |
 | **P3** | Combo Chart, Horizontal Bars & Scatter | ⏳ Planned |
 | **P4** | Continuous Time-Series Scales | ⏳ Planned |
 | **P5** | Accessibility (a11y / WCAG) | ⏳ Planned |
-| **P6** | Tree-Shaking, Vitest & CI | ⏳ Planned |
+| **P6** | Tree-Shaking, Vitest & CI | 🚀 In Progress (Tree-shaking, Vitest & CI done) |

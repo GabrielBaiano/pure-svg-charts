@@ -25,7 +25,8 @@ export const fullSvgStyle: React.CSSProperties = {
   width: '100%',
   height: 'auto',
   display: 'block',
-  overflow: 'visible'
+  overflow: 'visible',
+  touchAction: 'pan-y'
 };
 
 export function useChartBase(props: any) {

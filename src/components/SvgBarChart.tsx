@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { getSampledLabelIndices } from '../core/scale';
 import { generateBarPath } from '../core/bezier';
 import { SvgBarChartProps } from '../core/types';
@@ -46,7 +46,8 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
     subtitle,
     metric,
     className = '',
-    onBarHover
+    onBarHover,
+    renderTooltip
   } = props;
 
   const base = useChartBase(props);
@@ -73,6 +74,23 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
   } = base;
 
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [isPinned, setIsPinned] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isPinned) return;
+    const handleOutside = (e: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsPinned(false);
+        setHoveredKey(null);
+        onBarHover?.(null);
+      }
+    };
+    document.addEventListener('pointerdown', handleOutside);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutside);
+    };
+  }, [isPinned, onBarHover]);
 
   const isMultiSeries = Boolean(series && series.length > 0);
 
@@ -369,9 +387,38 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
   };
 
   const handleBarLeave = () => {
-    if (hoveredKey === null) return;
-    setHoveredKey(null);
-    onBarHover?.(null);
+    if (!isPinned) {
+      setHoveredKey(null);
+      onBarHover?.(null);
+    }
+  };
+
+  const handleTouchScrub = (e: React.TouchEvent<SVGSVGElement | SVGRectElement>) => {
+    if (!e.touches || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const clientX = touch.clientX - rect.left;
+    const clientY = touch.clientY - rect.top;
+    const svgX = pad.left + (clientX / rect.width) * chartWidth;
+    const svgY = pad.top + (clientY / rect.height) * chartHeight;
+
+    const catIdx = Math.max(0, Math.min(categoryCount - 1, Math.floor((svgX - pad.left) / slotWidth)));
+    const catSegments = renderedSegments.filter((seg) => seg.catIdx === catIdx);
+    if (!catSegments.length) return;
+
+    let closest = catSegments[0];
+    let minDist = Infinity;
+    for (const seg of catSegments) {
+      const segCenterY = seg.y + seg.height / 2;
+      const dist = Math.abs(segCenterY - svgY);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = seg;
+      }
+    }
+    setIsPinned(true);
+    handleBarEnter(closest);
   };
 
   if (categoryCount === 0) {
@@ -379,7 +426,7 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
   }
 
   return (
-    <div className={`pure-svg-chart-container ${className}`} style={containerStyle}>
+    <div ref={containerRef} className={`pure-svg-chart-container ${className}`} style={containerStyle}>
       <ChartHeader title={title} subtitle={subtitle} metric={metric} color={color} />
 
       {isMultiSeries && showLegend && (
@@ -401,7 +448,13 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
         </div>
       )}
 
-      <svg viewBox={`0 0 ${width} ${height}`} style={fullSvgStyle}>
+      <div style={{ position: 'relative', width: '100%', touchAction: 'pan-y' }}>
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          style={fullSvgStyle}
+          onTouchStart={handleTouchScrub}
+          onTouchMove={handleTouchScrub}
+        >
         <defs>{glow && <ChartGlowFilter id={glowId} color={color} />}</defs>
 
         <ChartGrid
@@ -458,7 +511,29 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
                 style={{ ...transitionStyle, cursor: 'pointer' }}
                 onMouseEnter={() => handleBarEnter(seg)}
                 onMouseLeave={handleBarLeave}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  setIsPinned(true);
+                  handleBarEnter(seg);
+                }}
               />
+              {seg.width < 28 && (
+                <rect
+                  x={seg.x - Math.max(0, (28 - seg.width) / 2)}
+                  y={seg.y}
+                  width={Math.max(28, seg.width)}
+                  height={seg.height}
+                  fill="transparent"
+                  style={{ cursor: 'pointer' }}
+                  onMouseEnter={() => handleBarEnter(seg)}
+                  onMouseLeave={handleBarLeave}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                    setIsPinned(true);
+                    handleBarEnter(seg);
+                  }}
+                />
+              )}
             </g>
           );
         })}
@@ -483,8 +558,8 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
             );
           })}
 
-        {/* SVG-native hover tooltip */}
-        {activeSegment && !showValues && (() => {
+        {/* SVG-native hover tooltip — used when custom renderTooltip is not provided */}
+        {activeSegment && !showValues && !renderTooltip && (() => {
           const bx = activeSegment.x + activeSegment.width / 2;
           const by = activeSegment.y;
           const labelPrefix = activeSegment.label ? `${activeSegment.label}: ` : '';
@@ -521,6 +596,35 @@ export const SvgBarChart: React.FC<SvgBarChartProps> = (props) => {
           );
         })()}
       </svg>
+
+      {/* HTML overlay tooltip for custom React component rendering */}
+      {activeSegment && !showValues && renderTooltip && (
+        <div
+          data-testid="custom-tooltip"
+          style={{
+            position: 'absolute',
+            left: `${((activeSegment.x + activeSegment.width / 2) / width) * 100}%`,
+            top: `${(activeSegment.y / height) * 100}%`,
+            transform: 'translate(-50%, -100%)',
+            pointerEvents: 'none',
+            zIndex: 10,
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {renderTooltip({
+            item: {
+              value: activeSegment.value,
+              index: activeSegment.catIdx,
+              label: activeSegment.label,
+              seriesName: activeSegment.seriesName,
+              seriesColor: activeSegment.seriesColor,
+              percent: activeSegment.percent
+            },
+            formattedValue: valueFormatter(activeSegment.value)
+          })}
+        </div>
+      )}
+      </div>
     </div>
   );
 };
