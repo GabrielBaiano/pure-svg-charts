@@ -13,13 +13,11 @@
 
 ---
 
-## 💡 Why Pure SVG Charts? (The "F@%# Bloat" Manifesto)
+## 💡 Why Pure SVG Charts?
 
-**F@%# bloated charting libraries that destroy dashboard performance and developer productivity.**
+Most charting libraries in the React ecosystem pull 150+ kB of external D3 dependencies, run into hydration issues in Server-Side Rendering (Next.js App Router, Remix), or choke the browser DOM with thousands of separate `<circle>` and `<path>` nodes.
 
-We got completely sick of charting libraries that drag **200+ kB of heavy D3 dependencies**, crash Next.js Server-Side Rendering (SSR) with canvas hydration errors, choke the browser DOM with 5,000 separate `<circle>` elements, require 30 lines of nested configuration hell just to plot 7 numbers, and turn your app's Lighthouse performance score into a red nightmare.
-
-**Pure SVG Charts** is the lightweight antidote:
+**Pure SVG Charts** is a zero-dependency SVG charting primitive built for high performance and minimal footprint:
 - 🪶 **Under 10 kB (min+gzip):** Over 20x lighter than Recharts, ECharts, and Tremor. Zero external runtime dependencies.
 - ⚡ **High-Density Engine (5,000+ Points):** Built-in Largest-Triangle-Three-Buckets (LTTB) downsampling renders 5,000 to 50,000 points in **~2.5 ms** while strictly preserving visual peaks and troughs.
 - 📐 **Auto-Sizing ResponsiveContainer:** Adapts dynamically to 100% parent container width/height via native `ResizeObserver` with zero layout distortion.
