@@ -17,6 +17,7 @@ export const SvgDonutChart: React.FC<SvgDonutChartProps> = ({
   animated = true,
   valueFormatter = (val) => String(Math.round(val)),
   className = '',
+  card = true,
   style,
   onSliceHover
 }) => {
@@ -71,10 +72,21 @@ export const SvgDonutChart: React.FC<SvgDonutChartProps> = ({
     onSliceHover?.(idx !== null ? cleanData[idx] : null);
   };
 
+  const isCard = card !== false;
   const containerStyle: React.CSSProperties = {
     position: 'relative',
     boxSizing: 'border-box',
-    ...preset.containerStyle,
+    width: '100%',
+    ...(isCard
+      ? preset.containerStyle
+      : {
+          borderRadius: 0,
+          padding: 0,
+          background: 'transparent',
+          border: 'none',
+          boxShadow: 'none',
+          color: preset.containerStyle?.color || 'currentColor'
+        }),
     ...style
   };
 

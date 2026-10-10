@@ -40,6 +40,30 @@ export default defineConfig(({ mode }) => {
     };
   }
 
+  if (mode === 'standalone') {
+    return {
+      plugins: [react(), minifyPlugin()],
+      define: {
+        'process.env.NODE_ENV': JSON.stringify('production')
+      },
+      esbuild: {
+        minifyWhitespace: true,
+        minifyIdentifiers: true,
+        minifySyntax: true
+      },
+      build: {
+        lib: {
+          entry: resolve(__dirname, 'src/standalone.ts'),
+          name: 'PureSvgChartsStandalone',
+          fileName: () => 'pure-svg-charts.standalone.js',
+          formats: ['es']
+        },
+        minify: 'esbuild',
+        emptyOutDir: false
+      }
+    };
+  }
+
   return {
     plugins: [react()]
   };

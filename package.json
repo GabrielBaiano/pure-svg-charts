@@ -19,6 +19,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build --mode lib && tsc -p tsconfig.build.json",
+    "build:standalone": "vite build --mode standalone",
     "prepublishOnly": "npm run test && npm run build",
     "preview": "vite preview",
     "test": "vitest run",

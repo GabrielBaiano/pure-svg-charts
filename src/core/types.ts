@@ -227,6 +227,8 @@ export interface SvgDonutChartProps {
   valueFormatter?: (val: number) => string;
   /** Custom CSS class name */
   className?: string;
+  /** Render inside styled card container or flush without outer styles (default: true) */
+  card?: boolean;
   /** Inline container styles */
   style?: React.CSSProperties;
   /** Callback on slice hover */

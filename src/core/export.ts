@@ -52,6 +52,8 @@ export async function exportChartAsImage(
 
   clone.setAttribute('width', String(width));
   clone.setAttribute('height', String(height));
+  const computedColor = window.getComputedStyle(svgElement).color || '#cbd5e1';
+  clone.style.color = computedColor;
 
   const svgString = new XMLSerializer().serializeToString(clone);
 
