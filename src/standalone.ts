@@ -7,7 +7,7 @@ import { SvgSparkline } from './components/SvgSparkline';
 import { SvgCrosshair } from './components/SvgCrosshair';
 import { CHART_VARIANTS } from './core/variants';
 import { exportChartAsImage } from './core/export';
-import type { SvgBarChartProps, SvgLineChartProps, SvgDonutChartProps } from './core/types';
+import type { SvgBarChartProps, SvgLineChartProps, SvgDonutChartProps, SvgSparklineProps } from './core/types';
 
 const roots = new WeakMap<HTMLElement, Root>();
 
@@ -43,6 +43,10 @@ export function renderLineChart(container: HTMLElement, props: SvgLineChartProps
 
 export function renderDonutChart(container: HTMLElement, props: SvgDonutChartProps): void {
   mountChart(container, createElement(SvgDonutChart, props));
+}
+
+export function renderSparkline(container: HTMLElement, props: SvgSparklineProps): void {
+  mountChart(container, createElement(SvgSparkline, props));
 }
 
 export {
