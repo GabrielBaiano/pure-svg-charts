@@ -49,12 +49,44 @@ export function SvgBarChart<T = any>(props: SvgBarChartProps<T>): React.ReactEle
     title,
     subtitle,
     metric,
+    labelAngle,
+    maxLabelChars,
     className = '',
     onBarHover,
     renderTooltip
   } = props;
 
-  const base = useChartBase(props);
+  const needsRotation = useMemo(() => {
+    if (labelAngle !== undefined && labelAngle !== 0) return true;
+    let maxLen = 0;
+    if (Array.isArray(rawData)) {
+      for (const d of rawData) {
+        if (typeof d === 'object' && d !== null && 'label' in d && d.label) {
+          maxLen = Math.max(maxLen, String(d.label).length);
+        }
+      }
+    }
+    if (userSeries) {
+      for (const s of userSeries) {
+        for (const d of s.data || []) {
+          if (typeof d === 'object' && d !== null && 'label' in d && d.label) {
+            maxLen = Math.max(maxLen, String(d.label).length);
+          }
+        }
+      }
+    }
+    return maxLen > 8;
+  }, [labelAngle, rawData, userSeries]);
+
+  const effectivePadding = useMemo(() => {
+    if (!needsRotation) return props.padding;
+    return {
+      ...props.padding,
+      bottom: props.padding?.bottom ?? 50
+    };
+  }, [needsRotation, props.padding]);
+
+  const base = useChartBase({ ...props, padding: effectivePadding });
   const {
     color,
     pad,
@@ -375,11 +407,39 @@ export function SvgBarChart<T = any>(props: SvgBarChartProps<T>): React.ReactEle
     return segments;
   }, [categoryCount, isMultiSeries, stacked, stackGap, normalizedSeries, categoryPosTotals, categoryNegTotals, pad.left, pad.top, slotWidth, barOffset, barWidth, baselineY, zeroY, valueRange, chartHeight, radius, refSeries, negativeColor]);
 
+  const hasLongLabels = useMemo(() => {
+    if (!categoryCount) return false;
+    for (let i = 0; i < categoryCount; i++) {
+      const lbl = getCategoryLabel(i);
+      if (lbl && (lbl.length * 6.5 > slotWidth * 0.85 || lbl.length > 8)) {
+        return true;
+      }
+    }
+    return false;
+  }, [categoryCount, slotWidth, refSeries]);
+
+  const effectiveAngle = labelAngle !== undefined
+    ? labelAngle
+    : (hasLongLabels && slotWidth < 90 ? -35 : 0);
+
+  const isRotated = effectiveAngle !== 0;
+
+  const resolvedMaxChars = maxLabelChars !== undefined
+    ? maxLabelChars
+    : (isRotated ? 14 : Math.max(5, Math.floor((slotWidth * 0.85) / 7)));
+
   const visibleLabelIndices = useMemo(() => {
     if (!categoryCount) return new Set<number>();
-    const maxLabels = Math.min(8, Math.max(2, Math.floor(chartWidth / 55)));
+    const minSlot = isRotated ? 26 : 55;
+    const maxAllowed = Math.floor(chartWidth / minSlot);
+    if (categoryCount <= maxAllowed) {
+      const all = new Set<number>();
+      for (let i = 0; i < categoryCount; i++) all.add(i);
+      return all;
+    }
+    const maxLabels = Math.min(14, Math.max(2, maxAllowed));
     return getSampledLabelIndices(categoryCount, maxLabels);
-  }, [categoryCount, chartWidth]);
+  }, [categoryCount, chartWidth, isRotated]);
 
   const transitionStyle = animated
     ? { transition: 'y 0.45s cubic-bezier(0.4, 0, 0.2, 1), height 0.45s cubic-bezier(0.4, 0, 0.2, 1)' }
@@ -594,20 +654,29 @@ export function SvgBarChart<T = any>(props: SvgBarChartProps<T>): React.ReactEle
 
         {showXAxis &&
           Array.from(visibleLabelIndices).map((catIdx) => {
-            const lbl = getCategoryLabel(catIdx);
+            const rawLbl = getCategoryLabel(catIdx);
+            const displayLbl =
+              rawLbl.length > resolvedMaxChars
+                ? rawLbl.slice(0, Math.max(1, resolvedMaxChars - 1)).trimEnd() + '…'
+                : rawLbl;
             const x = pad.left + catIdx * slotWidth + slotWidth / 2;
+            const textX = isRotated ? x - 4 : x;
+            const textY = isRotated ? baselineY + 12 : baselineY + 18;
+
             return (
               <text
                 key={catIdx}
-                x={x}
-                y={baselineY + 18}
-                textAnchor="middle"
+                x={textX}
+                y={textY}
+                textAnchor={isRotated ? 'end' : 'middle'}
+                transform={isRotated ? `rotate(${effectiveAngle}, ${textX}, ${textY})` : undefined}
                 fill="currentColor"
                 opacity={0.65}
                 fontSize="11"
                 fontWeight="500"
               >
-                {lbl}
+                <title>{rawLbl}</title>
+                {displayLbl}
               </text>
             );
           })}

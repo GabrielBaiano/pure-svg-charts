@@ -190,6 +190,10 @@ export interface SvgBarChartProps<T = any> extends BaseChartProps<T> {
   barGap?: number;
   /** Callback when a bar is hovered */
   onBarHover?: (item: { value: number; index: number; label?: string; seriesName?: string } | null) => void;
+  /** Angle in degrees to rotate X-axis labels (default: auto -35 when labels are long and slot is tight, 0 otherwise) */
+  labelAngle?: number;
+  /** Maximum character limit per X-axis label before ellipsis */
+  maxLabelChars?: number;
   /** Custom render function for tooltip (HTML/React overlay). Overrides default SVG tooltip. */
   renderTooltip?: (props: BarTooltipProps) => React.ReactNode;
 }

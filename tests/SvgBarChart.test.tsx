@@ -121,5 +121,54 @@ describe('<SvgBarChart />', () => {
     expect(svg).toBeTruthy();
     expect(container.querySelectorAll('path[style*="cursor: pointer"]').length).toBe(2);
   });
+
+  it('auto-rotates and truncates long X-axis labels to prevent overlap', () => {
+    const longData = [
+      { label: 'Gabriel Nascimento Gama', value: 10 },
+      { label: 'Maria das Dores da Silva', value: 8 },
+      { label: 'Ciência Aberta e Reprodutibilidade', value: 6 },
+      { label: 'Inteligência Artificial Aplicada', value: 4 },
+      { label: 'Bibliometria e Cientometria', value: 2 }
+    ];
+
+    const { container } = render(<SvgBarChart data={longData} />);
+
+    const textElements = container.querySelectorAll('text[text-anchor="end"], text[textAnchor="end"]');
+    expect(textElements.length).toBeGreaterThan(0);
+
+    const firstText = textElements[0];
+    const transform = firstText.getAttribute('transform');
+    expect(transform).toContain('rotate(-35');
+
+    // Should include native SVG title tooltip with full text
+    const title = firstText.querySelector('title');
+    expect(title?.textContent).toBe('Gabriel Nascimento Gama');
+
+    // Display text should be truncated with ellipsis
+    expect(firstText.textContent).toContain('…');
+  });
+
+  it('respects custom labelAngle and maxLabelChars props', () => {
+    const data = [
+      { label: 'VeryLongCategoryNameOne', value: 10 },
+      { label: 'VeryLongCategoryNameTwo', value: 20 }
+    ];
+
+    const { container } = render(
+      <SvgBarChart
+        data={data}
+        labelAngle={-45}
+        maxLabelChars={8}
+      />
+    );
+
+    const textElements = container.querySelectorAll('text[text-anchor="end"], text[textAnchor="end"]');
+    expect(textElements.length).toBe(2);
+
+    expect(textElements[0].getAttribute('transform')).toContain('rotate(-45');
+    // Truncated to 8 chars: 7 + '…'
+    expect(textElements[0].textContent).toContain('…');
+    expect(textElements[0].querySelector('title')?.textContent).toBe('VeryLongCategoryNameOne');
+  });
 });
 
